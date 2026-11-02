@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Capstone · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    /* ---------- Brief ---------- */
+    .scenario { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .scenario { grid-template-columns: 1fr; } }
+    .scenario h3 { margin: 0 0 6px; font-size: 22px; }
+    .scenario .quote { background: var(--bad-soft); color: var(--text); border-left: 4px solid var(--bad); padding: 12px 14px; border-radius: 10px; margin: 12px 0 0; font-weight: 600; }
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stat { background: var(--surface-2); border-radius: 12px; padding: 14px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+    .stat b { display: block; font-size: 28px; letter-spacing: -0.02em; }
+    .stat span { font-size: 13px; color: var(--muted); }
+    .stat.alert b { color: var(--bad); }
+    .illus { text-align: center; font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+    .people { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    @media (max-width: 700px) { .people { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .person { font: inherit; color: var(--text); text-align: left; cursor: pointer; min-height: 96px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;
+      display: flex; flex-direction: column; gap: 4px; transition: border-color .2s, background .2s; }
+    .person .who { display: flex; align-items: center; gap: 8px; font-weight: 800; }
+    .person .who span { font-size: 24px; }
+    .person .want { font-size: 14px; color: var(--muted); }
+    .person .tap { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: auto; }
+    .person.open { border-color: var(--accent); background: var(--accent-soft); }
+    .person.open .want { color: var(--text); }
+    .start-row { text-align: center; margin-top: 24px; }
+    .start-row a { display: inline-block; text-decoration: none; min-height: 44px; }
+
+    /* ---------- Project simulation ---------- */
+    .rail { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; margin-bottom: 20px; position: relative; }
+    .rail::before { content: ""; position: absolute; left: 3%; right: 3%; top: 22px; height: 3px; background: var(--line); border-radius: 3px; }
+    .rail-step { font: inherit; background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; min-height: 44px; min-width: 0; }
+    .rail-step:disabled { cursor: default; }
+    .rail-step .dot { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 19px;
+      background: var(--surface); border: 3px solid var(--line); transition: border-color .2s, background .2s; }
+    .rail-step .lbl { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.2; }
+    .rail-step.done .dot { border-color: var(--good); background: var(--good-soft); }
+    .rail-step.done.meh .dot { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, var(--surface)); }
+    .rail-step.done.miss .dot { border-color: var(--bad); background: var(--bad-soft); }
+    .rail-step.current .dot { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 20%, transparent); }
+    .rail-step.current .lbl { color: var(--accent); }
+    .rail-step:disabled .dot { opacity: .45; }
+    @media (max-width: 760px) { .rail-step .lbl { display: none; } .rail-step .dot { width: 36px; height: 36px; font-size: 16px; } .rail::before { top: 18px; } .rail-step { min-height: 44px; justify-content: center; } }
+
+    .proj { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 700px) { .proj { grid-template-columns: 1fr; } }
+    .stage-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .stage-num { font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--accent); text-transform: uppercase; }
+    .wk { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--surface-2); padding: 4px 10px; border-radius: 999px; }
+    .ch-ref { font-size: 13px; font-weight: 700; text-decoration: none; background: var(--surface-2); color: var(--text);
+      padding: 6px 12px; border-radius: 999px; min-height: 44px; display: inline-flex; align-items: center; }
+    .stage-title { margin: 8px 0 10px; font-size: 24px; }
+    .situation { background: var(--surface-2); border-radius: 12px; padding: 12px 14px 12px 32px; margin: 0 0 14px; }
+    .situation li { margin: 3px 0; }
+    .q { font-weight: 800; font-size: 17px; margin: 0 0 10px; }
+    .opts { display: flex; flex-direction: column; gap: 8px; }
+    .opt { font: inherit; text-align: left; cursor: pointer; color: var(--text); min-height: 48px;
+      background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px;
+      display: flex; gap: 10px; align-items: flex-start; transition: border-color .2s, background .2s; }
+    .opt:not(:disabled):hover { border-color: var(--accent); }
+    .opt .k { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+    .opt:disabled { cursor: default; }
+    .opt.best { border-color: var(--good); background: var(--good-soft); }
+    .opt.pick-meh { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, var(--surface)); }
+    .opt.pick-bad { border-color: var(--bad); background: var(--bad-soft); }
+    .opt.faded { opacity: .55; }
+    .fb { margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); animation: pop .35s ease; }
+    .fb h4 { margin: 0 0 6px; }
+    .fb .why { margin: 0 0 10px; }
+    .fb-actions { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .fb-actions .btn { min-height: 44px; }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px); } }
+
+    .board { position: sticky; top: 72px; }
+    @media (max-width: 700px) { .board { position: static; } }
+    .board h3 { margin: 0 0 4px; font-size: 18px; }
+    .health-lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 8px; }
+    .health-lbl b { color: var(--text); }
+    .meter { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 6px 0 14px; }
+    .meter i { display: block; height: 100%; transition: width .5s, background .5s; }
+    .artifacts { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; }
+    @media (max-width: 700px) { .artifacts { max-height: none; } }
+    .art { border: 1px solid var(--line); border-left: 4px solid var(--good); border-radius: 10px; padding: 10px 12px; background: var(--surface); animation: pop .35s ease; }
+    .art.meh { border-left-color: var(--warn); }
+    .art.miss { border-left-color: var(--bad); }
+    .art .t { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); display: flex; justify-content: space-between; gap: 6px; }
+    .art .c { font-size: 14px; margin-top: 4px; }
+    .art .c ul { margin: 0; padding-left: 16px; }
+    .empty-board { border: 2px dashed var(--line); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); font-size: 14px; }
+
+    /* ---------- Report card ---------- */
+    .locked-report { border: 2px dashed var(--line); border-radius: var(--radius); padding: 32px 16px; text-align: center; color: var(--muted); }
+    .locked-report b { display: block; font-size: 40px; }
+    .report-top { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 700px) { .report-top { grid-template-columns: 1fr; } }
+    .big { text-align: center; padding: 18px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+    .big b { display: block; font-size: 30px; letter-spacing: -0.02em; }
+    .big span { font-size: 13px; color: var(--muted); }
+    .big.good b { color: var(--good); }
+    .big.bad b { color: var(--bad); }
+    .decisions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .decisions .dec { flex: 0 1 calc((100% - 30px) / 4); min-width: 0; }
+    @media (max-width: 1000px) { .decisions .dec { flex-basis: calc((100% - 20px) / 3); } }
+    @media (max-width: 700px) { .decisions .dec { flex-basis: calc((100% - 10px) / 2); } }
+    .dec { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+    .dec .ico { font-size: 20px; flex: none; }
+    .dec .n { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--muted); }
+    .dec .t { font-weight: 700; font-size: 14px; }
+    .report-actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+    .report-actions .btn { min-height: 44px; text-decoration: none; }
+
+    /* ---------- Cheat sheet ---------- */
+    .sheet { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .tile { flex: 0 1 calc((100% - 24px) / 3); min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+    @media (max-width: 1000px) { .tile { flex-basis: calc((100% - 12px) / 2); } }
+    @media (max-width: 560px) { .tile { flex-basis: 100%; } }
+    .tile .h { display: flex; align-items: center; gap: 8px; font-weight: 800; }
+    .tile .h span { font-size: 20px; }
+    .tile .h small { color: var(--accent); font-size: 11px; letter-spacing: .08em; margin-left: auto; white-space: nowrap; }
+    .terms { display: flex; flex-wrap: wrap; gap: 4px; }
+    .terms i { font-style: normal; font-size: 12px; font-weight: 600; background: var(--surface-2); padding: 2px 8px; border-radius: 999px; }
+    .tile .ask { font-size: 14px; background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; margin-top: auto; }
+    .sheet-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+    .sheet-actions .btn { min-height: 44px; }
+    .copied { color: var(--good); font-weight: 700; }
+
+    @media print {
+      .topbar, .footer, #app > section:not(#lens), .sheet-actions, .step-label { display: none !important; }
+      body { background: #fff; color: #000; }
+      .tile { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 13 Capstone</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 13 · Capstone</div>
+      <h1>You're the TPM.<br>Land the migration.</h1>
+      <p>One project, thirteen decisions, every chapter in play.</p>
+      <nav class="stepper">
+        <a href="#brief">🧭 Brief</a>
+        <a href="#project">🛠️ Project</a>
+        <a href="#report">📊 Report</a>
+        <a href="#lens">🗣️ Cheat Sheet</a>
+      </nav>
+    </section>
+
+    <!-- ================= BRIEF ================= -->
+    <section class="section" id="brief">
+      <span class="step-label">🧭 Explore</span>
+      <h2>The brief lands on your desk</h2>
+      <p class="sub">Read the numbers. Tap each stakeholder to hear what they want.</p>
+
+      <div class="scenario">
+        <div class="card">
+          <h3>💳 Payments platform migration</h3>
+          <ul class="bullets">
+            <li>Move checkout from a legacy in-house gateway to a new provider, NewPay</li>
+            <li>The legacy gateway's hosting contract ends in 16 weeks</li>
+            <li>Backend, mobile and data teams, plus security and the vendor</li>
+            <li>You're the TPM: one owner for delivery across all of them</li>
+          </ul>
+          <div class="quote">💬 CFO: "We are not paying another year for the old gateway. Make it happen."</div>
+        </div>
+        <div class="stats">
+          <div class="stat alert"><b>16 wks</b><span>until the legacy contract ends</span></div>
+          <div class="stat"><b>5</b><span>teams and partners involved</span></div>
+          <div class="stat"><b>$400k</b><span>approved budget (BAC)</span></div>
+          <div class="stat alert"><b>0</b><span>double charges allowed</span></div>
+        </div>
+      </div>
+      <p class="illus">Illustrative scenario. Names and numbers are made up for practice.</p>
+
+      <div class="people" id="people"></div>
+
+      <div class="start-row"><a class="btn primary" href="#project">Start the project ↓</a></div>
+    </section>
+
+    <!-- ================= PROJECT ================= -->
+    <section class="section" id="project">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Thirteen decisions, kickoff to closure</h2>
+      <p class="sub">Choose what you'd do. Each choice builds an artifact on your project board.</p>
+
+      <div class="rail" id="rail"></div>
+      <div class="proj">
+        <div class="card" id="stage"></div>
+        <aside class="card board">
+          <h3>📋 Project board</h3>
+          <div class="health-lbl"><span>Project health</span><b id="health-val">–</b></div>
+          <div class="meter"><i id="health-bar" style="width:0%"></i></div>
+          <div class="artifacts" id="artifacts"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ================= REPORT ================= -->
+    <section class="section" id="report">
+      <span class="step-label">📊 Report</span>
+      <h2>Project report card</h2>
+      <p class="sub">What your decisions did to the date, the budget and the customers.</p>
+      <div id="report-body"></div>
+    </section>
+
+    <!-- ================= CHEAT SHEET ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>Your PM cheat sheet</h2>
+      <p class="sub">The whole journey on one page: key terms + the question to ask.</p>
+      <div class="sheet" id="sheet"></div>
+      <div class="sheet-actions">
+        <button class="btn" id="copy-sheet">📋 Copy as text</button>
+        <button class="btn" id="print-sheet">🖨️ Print / save PDF</button>
+        <span class="copied" id="copied"></span>
+      </div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>A TPM's job is <b>decisions with the trade-offs made visible</b>: scope, time, cost, risk.</li>
+          <li>Report the truth early: <b>ranges, earned value and an honest RAG</b>.</li>
+          <li>Close the loop: <b>success criteria at the start</b>, sign-off and a retro at the end.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const PEOPLE = [
+      ["💼", "CFO (sponsor)", "Off the old gateway before the contract renews. No surprises in the numbers."],
+      ["🛠️", "Backend lead", "A realistic plan. Worried about webhooks and reconciliation."],
+      ["📱", "Mobile lead", "App store review takes days. Needs the API contract early."],
+      ["📊", "Data lead", "Finance reports must match to the cent. Also busy with quarter-end."],
+      ["🔐", "Security", "PCI DSS scope and card data handling reviewed before any traffic moves."],
+      ["🤝", "NewPay engineer", "Wants a clear integration timeline and one point of contact."],
+    ];
+    const peopleEl = document.getElementById("people");
+    peopleEl.innerHTML = PEOPLE.map(([e, who, want], i) => `
+      <button class="person" data-p="${i}">
+        <span class="who"><span>${e}</span>${who}</span>
+        <span class="want" hidden>${want}</span>
+        <span class="tap">Tap to hear them</span>
+      </button>`).join("");
+    peopleEl.onclick = e => {
+      const p = e.target.closest(".person");
+      if (!p) return;
+      const open = p.classList.toggle("open");
+      p.querySelector(".want").hidden = !open;
+      p.querySelector(".tap").textContent = open ? "Tap to hide" : "Tap to hear them";
+    };
+
+    // Option quality: 2 = best, 1 = partly right, 0 = wrong move
+    const STAGES = [
+      { ch: 0, wk: 1, emoji: "🧭", short: "Setup", title: "Frame the work",
+        situation: ["Five groups, one hard end date, one unique outcome", "Everyone assumes 'someone' is running it"],
+        question: "How do you set this up?",
+        opts: [
+          ["Run it as ongoing operations in the platform team's backlog", 0, "It has a fixed end and a unique result. That's a project, not operations."],
+          ["A project with the CFO as sponsor, you as TPM, and the checkout product manager owning priorities", 2, "Temporary, unique, with clear roles. The sponsor funds and decides; you own delivery."],
+          ["Split it into a program of 12 independent projects", 0, "A program helps for many related projects, but this is one outcome. Extra overhead for no gain."],
+          ["Let each team lead run their own part, no single owner", 0, "Five owners means no owner. Cross-team work needs one accountable lead."],
+        ],
+        art: ["🧭 Setup", "Project · Sponsor: <b>CFO</b> · TPM: <b>you</b> · Priorities: checkout PM · Hard end: <b>week 16</b>"] },
+      { ch: 1, wk: 1, emoji: "🚀", short: "Charter", title: "Write the charter objective",
+        situation: ["The CFO will sign the charter this week", "It needs one objective everyone can test against"],
+        question: "Which objective goes in the charter?",
+        opts: [
+          ["\"Migrate to the new provider as soon as possible.\"", 0, "Not measurable and not time-bound. Nobody can tell when you're done."],
+          ["\"Move all checkout traffic to NewPay by week 14, payment success ≥ 99.5%, zero double charges.\"", 2, "SMART, with quality criteria and a 2-week buffer before the contract ends."],
+          ["\"Move traffic by week 16.\"", 1, "Time-bound, but no quality bar and zero buffer against a hard external deadline."],
+          ["\"Improve our payments experience.\"", 0, "A wish, not an objective. You can't plan or accept against it."],
+        ],
+        art: ["📜 Charter", "<b>100% of checkout on NewPay by week 14</b> · success ≥ 99.5% · 0 double charges · budget $400k"] },
+      { ch: 2, wk: 2, emoji: "📦", short: "Scope", title: "The Apple Pay request",
+        situation: ["Marketing: \"Add Apple Pay, we're touching checkout anyway\"", "It isn't in the charter or the WBS"],
+        question: "What do you do?",
+        opts: [
+          ["Say yes, it's a small addition", 0, "Classic scope creep. 'Small' changes add up and nobody re-plans."],
+          ["Raise a change request: impact analysis, sponsor decides; recommend phase 2", 2, "Change control. The sponsor decides with the time, cost and risk impact in front of them."],
+          ["Refuse flatly: it's out of scope", 1, "Right boundary, wrong process. Changes go through control; you don't own the decision."],
+          ["Let the mobile team build it quietly in spare time", 0, "Hidden work and gold plating. It steals capacity from the critical path."],
+        ],
+        art: ["🌳 WBS (level 1)", "1 Integration · 2 Web &amp; app clients · 3 Data &amp; reconciliation · 4 Security &amp; PCI · 5 Cutover &amp; decommission<br><small>CR-01 Apple Pay → phase 2</small>"] },
+      { ch: 3, wk: 3, emoji: "🎲", short: "Estimate", title: "Estimate the integration",
+        situation: ["Backend lead on webhooks + reconciliation: best 4, likely 6, worst 11 weeks", "CFO: \"Just give me one date.\""],
+        question: "What do you tell the CFO?",
+        opts: [
+          ["\"6 weeks\", the most likely value", 0, "The most likely value isn't the expected one. With a long tail, you'll miss it more often than not."],
+          ["\"Expected 6.5 weeks (PERT); very likely done by 8.8 (mean + 2σ), assuming the vendor sandbox is ready in week 1\"", 2, "(4 + 4×6 + 11) / 6 = 6.5, σ ≈ 1.2. A range with confidence and assumptions you can defend."],
+          ["\"11 weeks, to be safe\"", 1, "Safe, but hidden padding. Use an explicit range and a visible buffer instead."],
+          ["\"4 weeks, it keeps the team motivated\"", 0, "An optimistic target dressed up as an estimate. It sets the team up to fail."],
+        ],
+        art: ["🎲 Estimate", "Integration: <b>6.5 wks expected</b> (PERT) · ~95% by <b>8.8 wks</b> · assumes sandbox ready week 1"] },
+      { ch: 4, wk: 5, emoji: "📅", short: "Schedule", title: "Recover the schedule",
+        situation: ["Critical path: vendor sandbox → integration → reconciliation → shadow traffic → cutover", "Mobile update has 3 weeks of float. The plan is 1.5 weeks late."],
+        question: "How do you recover?",
+        opts: [
+          ["Add two mobile developers to speed up the app update", 0, "Mobile has float. Speeding up a non-critical task doesn't move the end date."],
+          ["Fast-track: build reconciliation in parallel against the vendor's API contract, accepting some rework", 2, "Overlaps critical tasks to pull the date in. You knowingly trade rework risk for time."],
+          ["Move cutover past the contract end date", 0, "The end date is a hard external constraint. Missing it means paying for another year."],
+          ["Hire three new backend engineers this week", 1, "Crashing can work, but onboarding costs time now (Brooks's law). Likely too late to help."],
+        ],
+        art: ["📅 Critical path", "Sandbox → Integration → Reconciliation → Shadow traffic → Cutover<br><small>Fast-tracked reconciliation · mobile float: 3 wks</small>"] },
+      { ch: 5, wk: 6, emoji: "👥", short: "RACI", title: "Ownership and capacity",
+        situation: ["Backend lead, SRE and you each think someone else owns the cutover switch", "Data lead is at 130% allocation with quarter-end close"],
+        question: "What do you fix?",
+        opts: [
+          ["Make everyone accountable for cutover so nothing slips", 0, "Shared accountability is no accountability. Exactly one A per task."],
+          ["RACI with one Accountable per task, and rebalance the data lead with the finance manager", 2, "Clear ownership plus realistic capacity. Over-allocation is a schedule risk, not a motivation problem."],
+          ["Ask the data lead to work weekends until launch", 0, "Burnout on the critical path is a risk you created."],
+          ["Write the RACI but leave capacity as it is", 1, "Ownership is clear, but a 130% person will still be the bottleneck."],
+        ],
+        art: ["👥 RACI · Cutover", "<b>A</b> Backend lead · <b>R</b> SRE · <b>C</b> Security, NewPay · <b>I</b> CFO, Support<br><small>Data lead 130% → 90% after quarter-end cover</small>"] },
+      { ch: 6, wk: 7, emoji: "⚠️", short: "Risk", title: "Respond to the top risk",
+        situation: ["NewPay may deliver the same webhook more than once", "Duplicate events could create double charges"],
+        question: "What's the best response?",
+        opts: [
+          ["Accept it, the vendor says it's rare", 0, "Impact is severe and customer-facing. 'Rare' isn't a plan."],
+          ["Mitigate: idempotency keys, dedupe by event ID, reconciliation alerts; backend lead owns it", 2, "Reduces probability and impact, with an owner and a clear trigger to watch."],
+          ["Transfer it: make the vendor liable in the contract", 1, "Money back helps, but customers still get double charged. Transfer doesn't remove the event."],
+          ["Avoid it: cancel the migration", 0, "Avoids this risk by failing the whole objective."],
+        ],
+        art: ["⚠️ Top risk", "Because webhooks may repeat, there is a risk of <b>double charges</b>, which would hurt customers and trust<br><small>Mitigate · owner: backend lead · trigger: any duplicate in shadow traffic</small>"] },
+      { ch: 7, wk: 8, emoji: "💰", short: "EVM", title: "Read the numbers",
+        situation: ["Week 8 of 16 · BAC $400k", "PV $200k · EV $170k · AC $210k"],
+        question: "What's the status?",
+        opts: [
+          ["We've spent $210k of $400k, so we're about on track", 0, "Spend isn't progress. Earned value compares what you finished with what you planned and spent."],
+          ["Behind schedule (SPI 0.85) and over budget (CPI 0.81); at this rate EAC ≈ $494k", 2, "SPI = EV/PV = 0.85, CPI = EV/AC ≈ 0.81, EAC = BAC/CPI ≈ $494k. Find the cost driver now."],
+          ["Behind schedule but under budget", 0, "AC is higher than EV, so you're over budget, not under."],
+          ["Behind schedule only; the costs will even out", 0, "Half right at best: CPI 0.81 means over budget too, and it rarely recovers by itself."],
+        ],
+        art: ["💰 Earned value", "SPI <b>0.85</b> · CPI <b>0.81</b> · EAC ≈ <b>$494k</b> vs BAC $400k<br><small>Action: review vendor hours + overtime</small>"] },
+      { ch: 8, wk: 8, emoji: "🧩", short: "Method", title: "Choose the approach",
+        situation: ["Contract, security review and cutover date are fixed", "Integration details change as you learn the vendor's API"],
+        question: "How do you run the work?",
+        opts: [
+          ["Waterfall: freeze all specs now", 1, "Works for the fixed parts, but locks in guesses about an API you're still learning."],
+          ["Hybrid: predictive milestones for contract, security and cutover; 2-week iterations for integration", 2, "Fixed gates where they're fixed, iterations where you're learning."],
+          ["Pure Scrum, no fixed milestones", 0, "The contract date and PCI review are real gates. Ignoring them is a risk."],
+          ["Each team picks its own process, no shared cadence", 0, "Five rhythms, no integration points. Dependencies will collide."],
+        ],
+        art: ["🧩 Approach", "<b>Hybrid</b> · milestones: contract · PCI review · cutover · 2-week iterations for integration"] },
+      { ch: 9, wk: 10, emoji: "📣", short: "Status", title: "Write the weekly status",
+        situation: ["Shadow traffic: 0.8% failures on one card type; fix due Friday", "Cutover still possible before the week-16 deadline by using 1 of 2 buffer weeks"],
+        question: "What goes to the CFO?",
+        opts: [
+          ["🟢 Green: the team is confident", 0, "A watermelon report: green outside, red inside. It destroys trust when it surfaces."],
+          ["🟡 Amber, bottom line first: week 14 holds using 1 buffer week; card failures fixed by Friday; no decision needed", 2, "Honest RAG, bottom line up front, impact and next step. The sponsor knows exactly where things stand."],
+          ["🔴 Red, to make sure they pay attention", 1, "Honest about the issue, but overstating it trains people to ignore red."],
+          ["A 3-page export of Jira tickets", 0, "Data isn't a status. Executives need the conclusion, not the raw list."],
+        ],
+        art: ["📣 Status · wk 10", "🟡 <b>Amber</b> · cutover wk 14 holds (1 buffer week used) · card failures fix Fri · no decision needed"] },
+      { ch: 10, wk: 11, emoji: "🤝", short: "Sponsor", title: "The hard conversation",
+        situation: ["CFO: \"Finance wants the cutover in week 12, to close the quarter on the new provider.\"", "Week 12 would cut the shadow-traffic week and the 50% rollout step"],
+        question: "How do you respond?",
+        opts: [
+          ["\"Yes, we'll find a way.\"", 0, "An unfunded promise. The date or quality will quietly break."],
+          ["Options with trade-offs: A) keep week 14 (recommended); B) week 12 without shadow traffic, higher double-charge risk; C) web in week 12, mobile in week 14. Ask for a decision.", 2, "You don't say no; you make the cost of yes visible and recommend. The sponsor decides."],
+          ["\"Let me think about it for a week.\"", 1, "Better than a blind yes, but a week of silence on a tight project. Bring options fast."],
+          ["Agree, then quietly tell the team to skip shadow traffic", 0, "Hiding the trade-off moves the risk to customers' cards."],
+        ],
+        art: ["🤝 Decision record", "<b>Option A chosen:</b> cutover stays week 14 · shadow traffic kept · decided by CFO, risk accepted in writing"] },
+      { ch: 11, wk: 13, emoji: "⚙️", short: "Release", title: "Plan the cutover",
+        situation: ["Checkout handles every order the company takes", "Rollback must be fast if success rate drops"],
+        question: "How do you release?",
+        opts: [
+          ["Big-bang switch on Friday night", 0, "All risk at once, at the worst time for support."],
+          ["Feature flag, progressive rollout 1% → 10% → 50% → 100%, auto-rollback on success-rate drop, legacy on standby", 2, "Small blast radius, fast rollback, real traffic as evidence at each step."],
+          ["Switch 100% at once, with a rollback runbook ready", 1, "A runbook helps, but a full switch still exposes every customer at once."],
+          ["Let the vendor run the release", 0, "They don't own your checkout, your users or your rollback."],
+        ],
+        art: ["⚙️ Release plan", "Flag <b>1% → 10% → 50% → 100%</b> · auto-rollback if success &lt; 99.5% · legacy on standby<br><small>10% day: flag off in 2 min, blameless review</small>"] },
+      { ch: 12, wk: 14, emoji: "🏁", short: "Go/no-go", title: "Go/no-go and closure",
+        situation: ["5 days at 100%: success 99.7%, reconciliation matched", "One open low-severity bug (receipt email format); support trained"],
+        question: "What's your call?",
+        opts: [
+          ["No-go until there are zero open bugs", 0, "The success criteria are met. Perfection isn't the bar."],
+          ["Go: decommission legacy now and skip the retro, the team's tired", 1, "The go is right, but you lose the lessons and the safety net of a read-only fallback."],
+          ["Go: criteria met; legacy read-only for 30 days; hand over runbooks; blameless retro; sponsor sign-off", 2, "Formal acceptance, a safe fallback, clean ownership and lessons captured."],
+          ["Go, and start Apple Pay with the same team tomorrow, no handover", 0, "No closure means no clear owner for production."],
+        ],
+        art: null },
+    ];
+    const MAX = STAGES.length * 2;
+    const KEY = "pm-capstone";
+    let state = load();
+    function load() {
+      try {
+        const s = JSON.parse(localStorage.getItem(KEY));
+        if (s && Array.isArray(s.answers) && s.answers.length === STAGES.length) return s;
+      } catch {}
+      return { answers: STAGES.map(() => null), current: 0 };
+    }
+    function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+
+    const quality = i => state.answers[i] === null ? null : STAGES[i].opts[state.answers[i]][1];
+    const points = () => state.answers.reduce((s, a, i) => s + (a === null ? 0 : quality(i)), 0);
+    const answered = () => state.answers.filter(a => a !== null).length;
+    const health = () => answered() ? Math.round(points() / (answered() * 2) * 100) : null;
+    const allDone = () => answered() === STAGES.length;
+    function outcome() {
+      const h = points() / MAX;
+      const week = 14 + Math.round((1 - h) * 5);
+      const cost = Math.round(400 * (1 + (1 - h) * 0.3));
+      return { week, cost, onTime: week <= 16 };
+    }
+    const cls = q => q === 2 ? "" : q === 1 ? "meh" : "miss";
+    const chLink = n => `<a class="ch-ref" href="${chapterUrl(CHAPTERS[n])}">📘 Ch ${String(n).padStart(2, "0")} · ${CHAPTERS[n].title}</a>`;
+
+    function renderRail() {
+      const firstOpen = state.answers.findIndex(a => a === null);
+      const reach = firstOpen === -1 ? STAGES.length - 1 : firstOpen;
+      document.getElementById("rail").innerHTML = STAGES.map((s, i) => {
+        const q = quality(i);
+        const c = [q !== null ? "done " + cls(q) : "", i === state.current ? "current" : ""].join(" ");
+        return `<button class="rail-step ${c}" data-go="${i}" ${i > reach ? "disabled" : ""} aria-label="Stage ${i + 1}: ${s.title}">
+          <span class="dot">${q === 2 ? "✓" : s.emoji}</span><span class="lbl">${s.short}</span></button>`;
+      }).join("");
+    }
+
+    function renderStage() {
+      const i = state.current, s = STAGES[i], a = state.answers[i];
+      const bestIdx = s.opts.findIndex(o => o[1] === 2);
+      const optHtml = s.opts.map((o, j) => {
+        let c = "";
+        if (a !== null) c = j === bestIdx ? "best" : j === a ? (o[1] === 1 ? "pick-meh" : "pick-bad") : "faded";
+        return `<button class="opt ${c}" data-opt="${j}" ${a !== null ? "disabled" : ""}>
+          <span class="k">${"ABCD"[j]}</span><span>${o[0]}</span></button>`;
+      }).join("");
+      let fb = "";
+      if (a !== null) {
+        const q = s.opts[a][1];
+        const head = q === 2 ? "✅ Great call" : q === 1 ? "🟡 Partly right" : "❌ Risky move";
+        const last = i === STAGES.length - 1;
+        fb = `<div class="fb">
+          <h4>${head}</h4>
+          <p class="why">${s.opts[a][2]}${q !== 2 ? `<br><b>Best:</b> ${s.opts[bestIdx][0]} ${s.opts[bestIdx][2]}` : ""}</p>
+          <div class="fb-actions">${chLink(s.ch)}
+            <button class="btn primary" id="next-stage">${last ? "See report card ↓" : "Next stage →"}</button></div>
+        </div>`;
+      }
+      document.getElementById("stage").innerHTML = `
+        <div class="stage-head"><span class="stage-num">Stage ${i + 1} / ${STAGES.length}</span><span class="wk">Week ${s.wk} of 16</span></div>
+        <h3 class="stage-title">${s.emoji} ${s.title}</h3>
+        <ul class="situation">${s.situation.map(x => `<li>${x}</li>`).join("")}</ul>
+        <p class="q">${s.question}</p>
+        <div class="opts">${optHtml}</div>${fb}`;
+    }
+
+    function closure() {
+      const o = outcome();
+      return ["🏁 Closure", `Cutover <b>week ${o.week}</b> ${o.onTime ? "· before contract end" : "· <b>past contract end</b>"} · final cost <b>$${o.cost}k</b> vs $400k · retro + handover ${quality(12) === 2 ? "done" : "skipped"}`];
+    }
+
+    function renderBoard() {
+      const h = health();
+      document.getElementById("health-val").textContent = h === null ? "–" : h + "%";
+      const bar = document.getElementById("health-bar");
+      bar.style.width = (h || 0) + "%";
+      bar.style.background = h === null ? "var(--line)" : h >= 75 ? "var(--good)" : h >= 50 ? "var(--warn)" : "var(--bad)";
+      const items = STAGES.map((s, i) => {
+        const q = quality(i);
+        if (q === null) return "";
+        const [t, c] = s.art || closure();
+        const tag = q === 2 ? "✓ solid" : q === 1 ? "⚠ revised" : "✗ fixed late";
+        return `<div class="art ${cls(q)}"><div class="t"><span>${t}</span><span>${tag}</span></div><div class="c">${c}</div></div>`;
+      }).filter(Boolean).reverse();
+      document.getElementById("artifacts").innerHTML = items.length ? items.join("")
+        : `<div class="empty-board">📭 Artifacts appear here as you decide: charter, WBS, estimate, critical path, RACI, risks, EVM, status, decisions.</div>`;
+    }
+
+    function renderReport() {
+      const el = document.getElementById("report-body");
+      if (!allDone()) {
+        el.innerHTML = `<div class="locked-report"><b>🔒</b>Finish all ${STAGES.length} stages to unlock your report card<br>
+          <span style="font-weight:700;color:var(--text)">${answered()} / ${STAGES.length} done</span></div>`;
+        return;
+      }
+      const o = outcome(), h = health();
+      const grade = h >= 90 ? "A" : h >= 75 ? "B" : h >= 55 ? "C" : "D";
+      el.innerHTML = `
+        <div class="report-top">
+          <div class="big ${o.week <= 14 ? "good" : o.onTime ? "" : "bad"}"><b>Week ${o.week}</b><span>cutover ${o.week <= 14 ? "· on plan, buffer intact 🎉" : o.onTime ? "· just before the contract ended" : "· contract renewed, extra year paid"}</span></div>
+          <div class="big ${o.cost <= 420 ? "good" : o.cost > 460 ? "bad" : ""}"><b>$${o.cost}k</b><span>final cost vs $400k budget</span></div>
+          <div class="big"><b>${grade} · ${h}%</b><span>project health</span></div>
+        </div>
+        <div class="decisions">${STAGES.map((s, i) => {
+          const q = quality(i);
+          return `<div class="dec"><span class="ico">${q === 2 ? "✅" : q === 1 ? "🟡" : "❌"}</span>
+            <div><div class="n">STAGE ${i + 1} · CH ${String(s.ch).padStart(2, "0")}</div><div class="t">${s.title}</div></div></div>`;
+        }).join("")}</div>
+        <p class="illus">Outcome is illustrative: it scales with the quality of your decisions.</p>
+        <div class="report-actions">
+          <button class="btn" id="restart">↺ Restart project</button>
+          <a class="btn primary" href="#lens">Get the cheat sheet ↓</a>
+        </div>`;
+    }
+
+    function renderAll() { renderRail(); renderStage(); renderBoard(); renderReport(); }
+
+    document.getElementById("project").addEventListener("click", e => {
+      const go = e.target.closest("[data-go]"), opt = e.target.closest("[data-opt]");
+      if (go && !go.disabled) { state.current = +go.dataset.go; save(); renderAll(); return; }
+      if (opt && state.answers[state.current] === null) {
+        state.answers[state.current] = +opt.dataset.opt; save(); renderAll(); return;
+      }
+      if (e.target.closest("#next-stage")) {
+        if (state.current < STAGES.length - 1) {
+          state.current++; save(); renderAll();
+          document.getElementById("rail").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          document.getElementById("report").scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    });
+    document.getElementById("report").addEventListener("click", e => {
+      if (!e.target.closest("#restart")) return;
+      state = { answers: STAGES.map(() => null), current: 0 };
+      save(); renderAll();
+      document.getElementById("project").scrollIntoView({ behavior: "smooth" });
+    });
+    renderAll();
+
+    const SHEET = [
+      [0, ["Project vs operations", "Iron triangle", "Sponsor", "PMBOK 7"], "Who's the sponsor, and which constraint can flex?"],
+      [1, ["Business case", "Charter", "SMART", "Stakeholder register"], "What does success look like, in numbers?"],
+      [2, ["WBS", "100% rule", "Change request", "Gold plating"], "Is this in scope, and what's the impact of adding it?"],
+      [3, ["PERT", "Cone of uncertainty", "Story points", "Velocity"], "What's the range, and which assumptions is it built on?"],
+      [4, ["Critical path", "Float", "Fast-tracking", "Crashing"], "Is this on the critical path?"],
+      [5, ["RACI", "Capacity", "Tuckman", "Team Topologies"], "Who is the one accountable person?"],
+      [6, ["Risk statement", "P × I", "EMV", "RAID log"], "Who owns this risk, and what's the trigger?"],
+      [7, ["PV · EV · AC", "SPI · CPI", "EAC", "Burn-up"], "How much value have we earned for what we've spent?"],
+      [8, ["Predictive", "Adaptive", "Hybrid", "Stage gates"], "Which parts are fixed, and which will we learn as we go?"],
+      [9, ["Comms plan", "RAG", "BLUF", "Cadence"], "What do they need to decide, and by when?"],
+      [10, ["Options + trade-offs", "Escalation", "Negotiation", "Disagree and commit"], "What are the options, and what do you recommend?"],
+      [11, ["Dependencies", "Tech debt", "Feature flags", "Incident review"], "What's the rollback plan?"],
+      [12, ["Go/no-go", "Acceptance", "Retrospective", "Handover"], "Did we meet the success criteria, and who owns it now?"],
+    ];
+    document.getElementById("sheet").innerHTML = SHEET.map(([n, terms, ask]) => `
+      <div class="tile">
+        <div class="h"><span>${CHAPTERS[n].emoji}</span>${CHAPTERS[n].title}<small>CH ${String(n).padStart(2, "0")}</small></div>
+        <div class="terms">${terms.map(t => `<i>${t}</i>`).join("")}</div>
+        <div class="ask">💬 ${ask}</div>
+      </div>`).join("");
+
+    const copiedEl = document.getElementById("copied");
+    document.getElementById("copy-sheet").onclick = async () => {
+      const text = "PROJECT MANAGEMENT CHEAT SHEET FOR TPMs\n\n" + SHEET.map(([n, terms, ask]) =>
+        `${String(n).padStart(2, "0")} ${CHAPTERS[n].title}\n  Terms: ${terms.join(", ")}\n  Ask: ${ask}`).join("\n\n");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); } catch {}
+        ta.remove();
+      }
+      copiedEl.textContent = "✓ Copied";
+      setTimeout(() => copiedEl.textContent = "", 2000);
+    };
+    document.getElementById("print-sheet").onclick = () => window.print();
+
+    initChapter(13);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

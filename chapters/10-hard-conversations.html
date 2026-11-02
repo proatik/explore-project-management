@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Hard Conversations · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    /* ---------- Shared bits ---------- */
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+    .seg .btn { min-height: 44px; }
+    .seg .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+    .tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+    .tag.good { background: var(--good-soft); color: var(--good); }
+    .tag.bad { background: var(--bad-soft); color: var(--bad); }
+    .tag.mid { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+
+    /* ---------- Explore: conversation simulator ---------- */
+    .sim { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .sim { grid-template-columns: 1fr; } }
+    .chat { display: flex; flex-direction: column; gap: 10px; min-height: 180px; }
+    .bubble { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 15px; animation: pop .3s ease; }
+    .bubble .who { display: block; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .bubble.them { align-self: flex-start; background: var(--surface-2); border-bottom-left-radius: 4px; }
+    .bubble.you { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+    .bubble.you .who { color: rgba(255,255,255,.75); }
+    .bubble.why { align-self: center; max-width: 100%; background: transparent; border: 1px dashed var(--line); font-size: 13px; color: var(--muted); text-align: center; }
+    @keyframes pop { from { opacity: 0; transform: translateY(6px); } }
+    .choices { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .choices .btn { text-align: left; min-height: 48px; font-weight: 600; }
+    .meter-row { margin-bottom: 14px; }
+    .meter-lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+    .meter-lbl b { color: var(--text); }
+    .meter { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 6px; }
+    .meter i { display: block; height: 100%; border-radius: 999px; transition: width .5s, background .5s; }
+    .path { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 14px; min-height: 26px; }
+    .ending { border-radius: 14px; padding: 14px; background: var(--surface-2); }
+    .ending h3 { margin: 0 0 6px; font-size: 18px; }
+    .ending p { margin: 0; font-size: 14px; color: var(--muted); }
+    .sim-side { display: flex; flex-direction: column; }
+    .sim-side .ending { flex: 1; }
+    .center-row { display: flex; justify-content: center; margin-top: 14px; }
+
+    /* ---------- Say no ---------- */
+    .request { text-align: center; font-weight: 700; margin-bottom: 14px; }
+    .request span { display: inline-block; background: var(--bad-soft); color: var(--bad); padding: 8px 16px; border-radius: 12px; }
+    .levers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 700px) { .levers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .lever { font: inherit; cursor: pointer; min-height: 72px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); color: var(--text); font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: border-color .2s, background .2s; }
+    .lever .e { font-size: 22px; }
+    .lever.active { border-color: var(--accent); background: var(--accent-soft); }
+    .say-out { margin-top: 14px; border-radius: 14px; padding: 16px; background: linear-gradient(135deg, var(--accent-soft), var(--surface)); border: 1px solid var(--line); }
+    .say-out .q { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+    .say-out .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .say-out .cols { grid-template-columns: 1fr; } }
+
+    .steps { display: flex; flex-direction: column; gap: 8px; }
+    .step { font: inherit; text-align: left; cursor: pointer; display: flex; gap: 12px; align-items: center; min-height: 48px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); }
+    .step .n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; background: var(--surface-2); color: var(--accent); }
+    .step.active { border-color: var(--accent); background: var(--accent-soft); }
+    .msg { border-radius: 14px; padding: 14px; background: var(--surface-2); font-size: 15px; line-height: 1.6; }
+    .msg mark { background: transparent; color: inherit; border-radius: 4px; padding: 0 2px; transition: background .2s; }
+    .msg mark.hl { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+    .ladder { display: flex; flex-direction: column-reverse; gap: 8px; }
+    .rung { font: inherit; cursor: pointer; text-align: left; min-height: 52px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font-weight: 700; }
+    .rung small { color: var(--muted); font-weight: 600; }
+    .rung.active { border-color: var(--accent); background: var(--accent-soft); }
+
+    /* ---------- Negotiate ---------- */
+    .pis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 560px) { .pis { grid-template-columns: 1fr; } }
+    .pi { font: inherit; text-align: left; cursor: pointer; min-height: 120px; border-radius: 14px; padding: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); display: flex; flex-direction: column; gap: 6px; transition: border-color .2s, background .2s; }
+    .pi .who { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .pi .pos { font-weight: 700; }
+    .pi .int { display: none; font-size: 14px; color: var(--good); font-weight: 600; }
+    .pi .hint { margin-top: auto; font-size: 12px; color: var(--muted); }
+    .pi.open { border-color: var(--good); background: var(--good-soft); }
+    .pi.open .int { display: block; }
+    .pi.open .hint { display: none; }
+
+    .tk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 760px) { .tk { grid-template-columns: 1fr; } }
+    .tk-grid { position: relative; aspect-ratio: 1 / 1; max-width: 380px; width: 100%; margin: 0 auto; border-left: 2px solid var(--line); border-bottom: 2px solid var(--line); }
+    .tk-grid .ax { position: absolute; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .tk-grid .ax.y { left: -8px; top: 50%; transform: translate(-50%, -50%) rotate(-90deg); white-space: nowrap; }
+    .tk-grid .ax.x { bottom: -26px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    .mode { font: inherit; cursor: pointer; position: absolute; transform: translate(-50%, -50%); min-height: 44px; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); font-weight: 700; font-size: 14px; white-space: nowrap; }
+    .mode.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tk-wrap { padding: 8px 8px 34px 28px; }
+    #tk-panel { display: flex; flex-direction: column; justify-content: center; }
+
+    .builder label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin: 10px 0 6px; }
+    .builder label:first-child { margin-top: 0; }
+    .builder select { width: 100%; font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); }
+    .sentence { font-size: 18px; line-height: 1.8; }
+    .sentence mark { color: #fff; padding: 2px 8px; border-radius: 6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+    .sentence .m1 { background: #5b4bdb; } .sentence .m2 { background: #1f9d63; } .sentence .m3 { background: #c98a0b; } .sentence .m4 { background: #d64545; }
+    .vs { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 14px; color: var(--muted); }
+    .vs s { color: var(--bad); }
+
+    /* ---------- Try ---------- */
+    .quiz { max-width: 640px; margin: 0 auto; }
+    .dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; }
+    .dots i { width: 28px; height: 6px; border-radius: 999px; background: var(--line); }
+    .dots i.good { background: var(--good); } .dots i.bad { background: var(--bad); } .dots i.now { background: var(--accent); }
+    .scene { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); text-align: center; }
+    .quote { font-size: 20px; font-weight: 700; text-align: center; margin: 6px 0 16px; }
+    .opts { display: flex; flex-direction: column; gap: 8px; }
+    .opts .btn { text-align: left; min-height: 52px; font-weight: 600; }
+    .opts .btn.right { border-color: var(--good); background: var(--good-soft); }
+    .opts .btn.wrong { border-color: var(--bad); background: var(--bad-soft); }
+    .fb { margin-top: 14px; font-size: 14px; }
+    .fb .note { display: block; text-align: center; margin: 0; }
+    .fb b.good { color: var(--good); } .fb b.bad { color: var(--bad); }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 10 Hard Conversations</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 10 · Hard Conversations</div>
+      <h1>Say the hard thing.<br>Early. With options.</h1>
+      <p>Turn pressure into choices, and conflict into agreement.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#sayno">💡 Say no</a>
+        <a href="#negotiate">🤝 Negotiate</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>"Move the launch up 3 weeks."</h2>
+      <p class="sub">You're the TPM. Pick your replies and watch trust and outcome move.</p>
+      <div class="sim">
+        <div class="card">
+          <div class="chat" id="chat"></div>
+          <div class="choices" id="choices"></div>
+        </div>
+        <div class="card sim-side">
+          <div class="meter-row">
+            <div class="meter-lbl"><span>🤝 VP's trust in you</span><b id="t-val">50</b></div>
+            <div class="meter"><i id="t-bar"></i></div>
+          </div>
+          <div class="meter-row">
+            <div class="meter-lbl"><span>🎯 Realistic outcome</span><b id="o-val">50</b></div>
+            <div class="meter"><i id="o-bar"></i></div>
+          </div>
+          <div class="h4">Your path</div>
+          <div class="path" id="path"></div>
+          <div class="ending" id="ending"></div>
+          <div class="center-row"><button class="btn" id="replay">↺ Try another path</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SAY NO ================= -->
+    <section class="section" id="sayno">
+      <span class="step-label">💡 Learn</span>
+      <h2>Say no without saying no</h2>
+      <p class="sub">Never a flat yes, never a flat no. Show the cost and let the decider choose.</p>
+
+      <div class="card">
+        <div class="request"><span>📩 "Add single sign-on before launch. Same date."</span></div>
+        <div class="levers" id="levers"></div>
+        <div class="say-out" id="say-out"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Deliver bad news early</h2>
+      <p class="sub">Tap each step to see it in the message.</p>
+      <div class="two">
+        <div class="card">
+          <div class="steps" id="bn-steps"></div>
+          <div class="seg" style="margin:14px 0 0" id="bn-mode"></div>
+        </div>
+        <div class="card">
+          <div class="h4" id="bn-title"></div>
+          <div class="msg" id="bn-msg"></div>
+          <ul class="bullets note" id="bn-notes"></ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Escalate the problem, not the person</h2>
+      <p class="sub">Escalation is a tool, not a threat. Tap a level.</p>
+      <div class="two">
+        <div class="card"><div class="ladder" id="ladder"></div></div>
+        <div class="card" id="rung-panel"></div>
+      </div>
+    </section>
+
+    <!-- ================= NEGOTIATE ================= -->
+    <section class="section" id="negotiate">
+      <span class="step-label">🤝 Learn</span>
+      <h2>Positions hide interests</h2>
+      <p class="sub">From Fisher &amp; Ury, <i>Getting to Yes</i>. Tap a demand to see what's really behind it.</p>
+      <div class="two">
+        <div class="pis" id="pis"></div>
+        <div class="card">
+          <div class="h4">The 4 principles</div>
+          <ul class="bullets">
+            <li>Separate the <b>people</b> from the problem</li>
+            <li>Focus on <b>interests</b>, not positions</li>
+            <li>Invent <b>options</b> for mutual gain</li>
+            <li>Insist on <b>objective criteria</b></li>
+          </ul>
+          <div class="h4" style="margin-top:16px">Know your BATNA</div>
+          <ul class="bullets">
+            <li><b>B</b>est <b>A</b>lternative <b>T</b>o a <b>N</b>egotiated <b>A</b>greement</li>
+            <li>What you'll do if there's no deal</li>
+            <li>E.g. "No SSO by June → we launch without it and give Acme a dated roadmap commitment."</li>
+            <li>A strong BATNA lets you stay calm and say no to a bad deal</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Five ways people handle conflict</h2>
+      <p class="sub">The Thomas-Kilmann model. No mode is always right. Tap one.</p>
+      <div class="tk">
+        <div class="card tk-wrap">
+          <div class="tk-grid" id="tk-grid">
+            <span class="ax y">Assertiveness →</span>
+            <span class="ax x">Cooperativeness →</span>
+          </div>
+        </div>
+        <div class="card" id="tk-panel"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Words that keep it safe</h2>
+      <p class="sub">Talk about behavior and needs, not character. Build a sentence.</p>
+      <div class="seg" id="fb-tabs"></div>
+      <div class="two">
+        <div class="card builder" id="fb-form"></div>
+        <div class="card">
+          <div class="sentence" id="fb-out"></div>
+          <div class="vs" id="fb-vs"></div>
+        </div>
+      </div>
+      <p class="note" style="text-align:center">Also worth reading: <i>Crucial Conversations</i>. Start with what you really want, keep it safe to talk, and state facts before stories.</p>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>What would you say?</h2>
+      <p class="sub">5 real situations. Pick the best reply.</p>
+      <div class="card quiz" id="quiz"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When someone says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>Never a flat yes or no: offer <b>options with their cost</b>.</li>
+          <li>Bad news travels best <b>early</b>, with options and a recommendation.</li>
+          <li>Negotiate on <b>interests</b>, escalate the <b>problem</b>, give feedback on <b>behavior</b>.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const $ = (id) => document.getElementById(id);
+    const list = (a) => `<ul class="bullets">${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+
+    /* ---------- Explore: conversation simulator ---------- */
+    const NODES = {
+      start: { who: "VP of Sales", text: "The board meeting moved up. I need the launch 3 weeks earlier. Make it happen.",
+        choices: [
+          { say: "Sure, we'll make it work.", tag: "Cave", dt: 5, dout: -25, next: "caveA", why: "Instant relief, hidden debt: you promised a date with no plan behind it." },
+          { say: "That's not possible. The plan is the plan.", tag: "Refuse", dt: -20, dout: 0, next: "refuseA", why: "A flat no ends the conversation and makes you the obstacle." },
+          { say: "Help me understand: what does the board need to see?", tag: "Ask", dt: 10, dout: 15, next: "askA", why: "Asking about the interest behind the demand opens up options." },
+        ] },
+      caveA: { who: "Dev lead · 2 weeks later", text: "We're well behind. There's no way we hit the new date.",
+        choices: [
+          { say: "I'll tell the VP today, with options.", tag: "Recover", dt: 10, dout: 20, next: "endRecover", why: "Bad news early is still bad news, but now it's manageable." },
+          { say: "Let's work weekends and keep quiet.", tag: "Hide", dt: -15, dout: -20, next: "endBurn", why: "Burnout and bugs pile up. The slip still comes, just later." },
+        ] },
+      refuseA: { who: "VP of Sales", text: "Then I'll find someone who can deliver.",
+        choices: [
+          { say: "Let me come back tomorrow with three options and their costs.", tag: "Recover", dt: 15, dout: 20, next: "endRecover", why: "You moved from 'no' to 'here's what's possible'." },
+          { say: "It's still not possible.", tag: "Refuse", dt: -15, dout: -10, next: "endEscalated", why: "Holding a position without options invites an escalation over your head." },
+        ] },
+      askA: { who: "VP of Sales", text: "They want to see it running for the investor update.",
+        choices: [
+          { say: "We can demo the core flow live by then. Full launch stays on plan.", tag: "Trade scope", dt: 15, dout: 25, next: "endBest", why: "You met the real interest, a live demo, without breaking the plan." },
+          { say: "We could add two contractors to go faster.", tag: "Add people", dt: 0, dout: -15, next: "endBrooks", why: "Brooks's law: new people slow a late project before they help." },
+          { say: "We'll skip the final QA round.", tag: "Accept risk", dt: 5, dout: -20, next: "endRisk", why: "You traded hidden quality risk for a date without saying so." },
+        ] },
+    };
+    const ENDS = {
+      endBest: ["🏆", "Win-win", "The board sees a live demo. The launch date holds. The VP now brings you problems, not orders."],
+      endRecover: ["🙂", "Recovered", "Late but honest. The VP picks an option and adjusts the board message."],
+      endBurn: ["🔥", "Burnout and a miss", "The team is exhausted, quality drops, and the VP hears the bad news last."],
+      endEscalated: ["🧱", "Escalated over your head", "The VP goes to your boss. You've lost the room and the decision."],
+      endBrooks: ["🐢", "Slower, not faster", "Onboarding eats the team's time. The date slips anyway."],
+      endRisk: ["⚠️", "Shipped with a hidden risk", "It launches on time, then a bug hits customers. Name a risk out loud before you accept it."],
+    };
+    let node, trust, outcome, steps;
+    function setMeter(id, v) {
+      $(id + "-val").textContent = v;
+      const bar = $(id + "-bar");
+      bar.style.width = v + "%";
+      bar.style.background = v >= 65 ? "var(--good)" : v >= 40 ? "var(--warn)" : "var(--bad)";
+    }
+    function renderSim() {
+      setMeter("t", trust); setMeter("o", outcome);
+      $("path").innerHTML = steps.length
+        ? steps.map((s) => `<span class="tag ${s.dout > 0 ? "good" : s.dout < 0 ? "bad" : "mid"}">${s.tag}</span>`).join("")
+        : `<span class="note" style="margin:0">No replies yet</span>`;
+      const end = ENDS[node];
+      $("ending").innerHTML = end
+        ? `<h3>${end[0]} ${end[1]}</h3><p>${end[2]}</p>`
+        : `<h3>🤔 In progress</h3><p>Every reply moves trust and the realistic outcome. There's more than one good path.</p>`;
+      $("choices").innerHTML = end ? "" : NODES[node].choices.map((c, i) =>
+        `<button class="btn" data-c="${i}">${c.say}</button>`).join("");
+    }
+    function addBubble(cls, who, text) {
+      $("chat").insertAdjacentHTML("beforeend", `<div class="bubble ${cls}">${who ? `<span class="who">${who}</span>` : ""}${text}</div>`);
+    }
+    function startSim() {
+      node = "start"; trust = 50; outcome = 50; steps = [];
+      $("chat").innerHTML = "";
+      addBubble("them", NODES.start.who, NODES.start.text);
+      renderSim();
+    }
+    $("choices").onclick = (e) => {
+      const b = e.target.closest("[data-c]");
+      if (!b) return;
+      const c = NODES[node].choices[+b.dataset.c];
+      trust = Math.max(0, Math.min(100, trust + c.dt));
+      outcome = Math.max(0, Math.min(100, outcome + c.dout));
+      steps.push(c);
+      addBubble("you", "You", c.say);
+      addBubble("why", "", `${c.dout > 0 ? "✅" : c.dout < 0 ? "⚠️" : "➖"} ${c.why}`);
+      node = c.next;
+      if (NODES[node]) addBubble("them", NODES[node].who, NODES[node].text);
+      renderSim();
+    };
+    $("replay").onclick = startSim;
+    startSim();
+
+    /* ---------- Say no: trade-off levers ---------- */
+    const LEVERS = [
+      { e: "✂️", name: "Drop scope", say: "Yes, we can add SSO by launch if we move the reporting dashboard to the next release.", gain: "Date and budget hold", cost: "Dashboard arrives later" },
+      { e: "📅", name: "Add time", say: "Yes, SSO done properly takes about 3 more weeks. Can we move the launch to the 24th?", gain: "Full scope, same quality", cost: "Later launch" },
+      { e: "💰", name: "Add cost", say: "Yes, if we bring in an identity specialist for 4 weeks. That's extra budget, and onboarding takes a week.", gain: "Date can hold", cost: "Budget, onboarding drag" },
+      { e: "🎲", name: "Accept risk", say: "Yes, if we ship SSO with lighter testing. Here's the risk: login issues on day one. Do you accept it?", gain: "Date and scope hold", cost: "Quality and support risk" },
+    ];
+    let lever = 0;
+    function renderLevers() {
+      $("levers").innerHTML = LEVERS.map((l, i) =>
+        `<button class="lever ${i === lever ? "active" : ""}" data-l="${i}"><span class="e">${l.e}</span>${l.name}</button>`).join("");
+      const l = LEVERS[lever];
+      $("say-out").innerHTML = `
+        <div class="q">💬 "${l.say}"</div>
+        <div class="cols">
+          <div><span class="tag good">You protect</span> ${l.gain}</div>
+          <div><span class="tag bad">It costs</span> ${l.cost}</div>
+        </div>
+        <p class="note" style="margin-bottom:0">Same request, four honest answers. The decider picks the trade-off, not you.</p>`;
+    }
+    $("levers").onclick = (e) => { const b = e.target.closest("[data-l]"); if (b) { lever = +b.dataset.l; renderLevers(); } };
+    renderLevers();
+
+    /* ---------- Say no: bad news formula ---------- */
+    const BN_STEPS = ["What happened", "Impact", "Options", "Recommendation", "The ask"];
+    const BN_GOOD = [
+      "The payment vendor's API change broke our checkout integration yesterday.",
+      "Without a fix, the launch slips about 2 weeks, past the board meeting.",
+      "Options: (1) patch now and launch on time with manual refunds, (2) full fix and launch 2 weeks late, (3) launch without card payments.",
+      "I recommend option 1: it keeps the date, and manual refunds are low volume.",
+      "Can you approve option 1 by Thursday so we keep the date?",
+    ];
+    const BN_BAD = "Hi, so a few things came up with the payment stuff and there might be some delays, the team is looking into it and we'll keep you posted. Fingers crossed it's fine!";
+    let bnStep = 0, bnGood = true;
+    function renderBn() {
+      $("bn-steps").innerHTML = BN_STEPS.map((s, i) =>
+        `<button class="step ${bnGood && i === bnStep ? "active" : ""}" data-s="${i}"><span class="n">${i + 1}</span>${s}</button>`).join("");
+      $("bn-mode").innerHTML = [["good", "✅ Clear version"], ["bad", "❌ Vague version"]].map(([k, l]) =>
+        `<button class="btn ${(k === "good") === bnGood ? "active" : ""}" data-m="${k}">${l}</button>`).join("");
+      $("bn-title").textContent = bnGood ? "The clear message" : "The vague message";
+      $("bn-msg").innerHTML = bnGood ? BN_GOOD.map((t, i) => `<mark class="${i === bnStep ? "hl" : ""}">${t}</mark>`).join(" ") : BN_BAD;
+      $("bn-notes").innerHTML = (bnGood
+        ? ["Send it early: as soon as you know, not when you're sure", "Lead with facts, not excuses", "Always bring a recommendation"]
+        : ["No facts, no impact, no options", "Forces the reader to chase you", "Bad news delivered late feels like hiding"]).map((x) => `<li>${x}</li>`).join("");
+    }
+    $("bn-steps").onclick = (e) => { const b = e.target.closest("[data-s]"); if (b) { bnStep = +b.dataset.s; bnGood = true; renderBn(); } };
+    $("bn-mode").onclick = (e) => { const b = e.target.closest("[data-m]"); if (b) { bnGood = b.dataset.m === "good"; renderBn(); } };
+    renderBn();
+
+    /* ---------- Say no: escalation ladder ---------- */
+    const RUNGS = [
+      { name: "Resolve with your peer", who: "The other team's TPM or lead", when: ["Most blockers start here", "Agree on facts first"], bring: ["The shared problem", "Two or three options"] },
+      { name: "Team leads together", who: "Both engineering managers", when: ["Peers can't agree on priority", "Resources need to move"], bring: ["Impact on both teams", "What you already tried"] },
+      { name: "Your sponsor", who: "Project sponsor or your manager", when: ["A decision is above your authority", "A tolerance is breached (date, budget, scope)"], bring: ["Decision needed and by when", "Options with costs", "Your recommendation"] },
+      { name: "Steering committee", who: "Senior leaders across the org", when: ["Cross-org trade-offs", "Strategy or funding change"], bring: ["One-page summary", "Clear decision request"] },
+    ];
+    let rung = 2;
+    function renderRung() {
+      $("ladder").innerHTML = RUNGS.map((r, i) =>
+        `<button class="rung ${i === rung ? "active" : ""}" data-r="${i}"><span>${i + 1}. ${r.name}</span><small>${r.who}</small></button>`).join("");
+      const r = RUNGS[rung];
+      $("rung-panel").innerHTML = `
+        <div class="h4">Level ${rung + 1} · ${r.name}</div>
+        <div class="two" style="gap:12px">
+          <div><b>Escalate when</b>${list(r.when)}</div>
+          <div><b>Bring</b>${list(r.bring)}</div>
+        </div>
+        <p class="note">✅ "We need a decision on X by Friday."<br>❌ "Team B keeps blocking us."</p>`;
+    }
+    $("ladder").onclick = (e) => { const b = e.target.closest("[data-r]"); if (b) { rung = +b.dataset.r; renderRung(); } };
+    renderRung();
+
+    /* ---------- Negotiate: positions vs interests ---------- */
+    const PIS = [
+      ["Sales", "\"We need feature X by Q3.\"", "Close the Acme deal, which depends on X."],
+      ["Security", "\"No release without a pen test.\"", "Avoid a breach and an audit finding."],
+      ["Engineering lead", "\"We need 2 sprints for a refactor.\"", "Stop the bug rate that's eating velocity."],
+      ["Finance", "\"Cut the budget by 15%.\"", "Hit this year's margin target."],
+    ];
+    $("pis").innerHTML = PIS.map(([who, pos, int]) => `
+      <button class="pi"><span class="who">${who}</span><span class="pos">${pos}</span>
+        <span class="int">💡 Interest: ${int}</span><span class="hint">Tap to reveal the interest</span></button>`).join("");
+    $("pis").onclick = (e) => { const b = e.target.closest(".pi"); if (b) b.classList.toggle("open"); };
+
+    /* ---------- Negotiate: Thomas-Kilmann ---------- */
+    const MODES = [
+      { name: "Competing", x: 24, y: 18, what: "Assertive, uncooperative: my way.", use: ["Emergencies and security issues", "Unpopular but necessary calls"], risk: "Damages relationships if overused.", ex: "\"We're rolling back the release now.\"" },
+      { name: "Collaborating", x: 76, y: 18, what: "Assertive and cooperative: find a solution that fully meets both sides' interests.", use: ["Important issues with time to talk", "When you need commitment, not just compliance"], risk: "Slow; not worth it for small things.", ex: "\"Let's map both teams' needs and design a rollout that works for both.\"" },
+      { name: "Compromising", x: 50, y: 50, what: "Middle ground: each side gives up part.", use: ["Equal power, deadline pressure", "Temporary fixes"], risk: "Nobody gets what they really need.", ex: "\"You get the API this sprint, we get the docs next sprint.\"" },
+      { name: "Avoiding", x: 24, y: 82, what: "Unassertive, uncooperative: sidestep for now.", use: ["Trivial issues", "Emotions are too hot right now"], risk: "Problems grow when ignored.", ex: "\"Let's pick this up tomorrow when we have the data.\"" },
+      { name: "Accommodating", x: 76, y: 82, what: "Cooperative, unassertive: let the other side win.", use: ["It matters more to them", "Building goodwill for later"], risk: "Resentment if you always give in.", ex: "\"Fair point, let's use your naming convention.\"" },
+    ];
+    let mode = 1;
+    function renderTk() {
+      $("tk-grid").querySelectorAll(".mode").forEach((m) => m.remove());
+      MODES.forEach((m, i) => $("tk-grid").insertAdjacentHTML("beforeend",
+        `<button class="mode ${i === mode ? "active" : ""}" data-k="${i}" style="left:${m.x}%;top:${m.y}%">${m.name}</button>`));
+      const m = MODES[mode];
+      $("tk-panel").innerHTML = `
+        <div class="h4">${m.name}</div>
+        <p style="margin:0 0 10px;font-weight:600">${m.what}</p>
+        <b>Use when</b>${list(m.use)}
+        <p style="margin:10px 0 0"><span class="tag bad">Risk</span> ${m.risk}</p>
+        <p class="note">💬 ${m.ex}</p>`;
+    }
+    $("tk-grid").onclick = (e) => { const b = e.target.closest("[data-k]"); if (b) { mode = +b.dataset.k; renderTk(); } };
+    renderTk();
+
+    /* ---------- Negotiate: SBI and NVC builders ---------- */
+    const FB = {
+      sbi: { tab: "SBI feedback", src: "Situation-Behavior-Impact, from the Center for Creative Leadership.",
+        parts: [
+          ["Situation", ["In yesterday's sprint review", "During Monday's client call", "In the incident postmortem"]],
+          ["Behavior", ["you presented the demo before the build was ready", "you interrupted the client twice", "you walked everyone through the timeline step by step"]],
+          ["Impact", ["the client saw errors and lost confidence", "they stopped sharing their concerns", "we found the root cause in 20 minutes"]],
+        ],
+        make: (v) => `<mark class="m1">${v[0]}</mark>, <mark class="m2">${v[1]}</mark>, and <mark class="m3">${v[2]}</mark>.`,
+        bad: "\"You're careless with demos.\"", why: "SBI describes what happened and its effect, not the person's character. It works for praise too." },
+      nvc: { tab: "NVC request", src: "Observation, feeling, need, request, from Marshall Rosenberg's Nonviolent Communication.",
+        parts: [
+          ["Observation", ["When the last three tickets moved to Done without tests", "When I heard about the date change in the all-hands", "When stand-up ran 40 minutes today"]],
+          ["Feeling", ["I feel worried", "I feel surprised", "I feel frustrated"]],
+          ["Need", ["because I need confidence the release is safe", "because I need time to prepare the client", "because I need focus time for the team"]],
+          ["Request", ["Would you add tests before moving tickets to Done?", "Could you tell me about date changes before they're announced?", "Can we keep stand-up to 15 minutes?"]],
+        ],
+        make: (v) => `<mark class="m1">${v[0]}</mark>, <mark class="m2">${v[1]}</mark> <mark class="m3">${v[2]}</mark>. <mark class="m4">${v[3]}</mark>`,
+        bad: "\"You never write tests.\"", why: "A clear, doable request beats blame. \"Never\" and \"always\" invite defense, not change." },
+    };
+    let fbTab = "sbi"; const fbPick = { sbi: [0, 0, 0], nvc: [0, 0, 0, 0] };
+    function renderFb() {
+      $("fb-tabs").innerHTML = Object.entries(FB).map(([k, f]) => `<button class="btn ${k === fbTab ? "active" : ""}" data-t="${k}">${f.tab}</button>`).join("");
+      const f = FB[fbTab];
+      $("fb-form").innerHTML = f.parts.map(([lbl, opts], i) => `
+        <label for="fb-${i}">${lbl}</label>
+        <select id="fb-${i}" data-i="${i}">${opts.map((o, j) => `<option value="${j}" ${j === fbPick[fbTab][i] ? "selected" : ""}>${o}</option>`).join("")}</select>`).join("")
+        + `<p class="note">${f.src}</p>`;
+      renderFbOut();
+    }
+    function renderFbOut() {
+      const f = FB[fbTab];
+      $("fb-out").innerHTML = f.make(f.parts.map(([, opts], i) => opts[fbPick[fbTab][i]]));
+      $("fb-vs").innerHTML = `❌ <s>${f.bad}</s><br>✅ ${f.why}`;
+    }
+    $("fb-tabs").onclick = (e) => { const b = e.target.closest("[data-t]"); if (b) { fbTab = b.dataset.t; renderFb(); } };
+    $("fb-form").onchange = (e) => { const i = e.target.dataset.i; if (i !== undefined) { fbPick[fbTab][+i] = +e.target.value; renderFbOut(); } };
+    renderFb();
+
+    /* ---------- Try: scenarios ---------- */
+    const QUIZ = [
+      { scene: "Dev lead", quote: "\"I won't estimate. Any number becomes a deadline.\"", best: 1, opts: [
+        ["I need a number by end of day. Just guess.", "Forcing a guess confirms their fear: a number turns into a promise."],
+        ["Fair. Give me a range with your confidence and assumptions. I'll present it as a range, not a commitment.", "You address the real interest, not being blamed, and still get a usable forecast."],
+        ["Fine, I'll estimate it myself.", "You lose the team's expertise and their buy-in."] ] },
+      { scene: "Client", quote: "\"This feature was obviously implied in the contract. Add it for free.\"", best: 2, opts: [
+        ["Sure, we'll add it.", "Unpriced scope creep. The team pays later in overtime and slips."],
+        ["That's not in the contract.", "True, but a flat no damages the relationship."],
+        ["Let's check it against the agreed scope together. If it's new, I'll show you the cost and date impact so you can decide.", "Objective criteria (the contract) plus options keeps it fair and friendly."] ] },
+      { scene: "Outage", quote: "\"Team A broke it.\" \"No, Team B's config did.\"", best: 1, opts: [
+        ["Let's find out whose fault it was.", "Blame makes people hide information. You'll learn less."],
+        ["Let's run a blameless postmortem: timeline first, then contributing factors and fixes.", "Focus on the system, not the person. Both teams can share facts safely."],
+        ["Each team writes its own report.", "Two competing stories, no shared fix."] ] },
+      { scene: "Sponsor", quote: "\"After that slip, I want a daily status meeting.\"", best: 1, opts: [
+        ["Daily meetings will slow us down. No.", "Ignores the real need: confidence after a surprise."],
+        ["You need more visibility, agreed. How about a 5-minute daily written update and a weekly call until we're back on track?", "Meets the interest (visibility) at lower cost, with an end date."],
+        ["Okay, one-hour status meetings every day.", "Accommodating at a high cost to the team's focus."] ] },
+      { scene: "Engineer", quote: "Your senior engineer has missed three deadlines in a row.", best: 2, opts: [
+        ["Raise it in stand-up so everyone knows.", "Public feedback on a performance issue breaks trust."],
+        ["Quietly move their work to someone else.", "Avoiding: the problem stays, and the team notices."],
+        ["Talk 1:1 using SBI, then ask what's getting in the way.", "Specific, private, curious. Often the cause is a blocker you can remove."] ] },
+    ];
+    let qi = 0, answers = [], picked = null;
+    function renderQuiz() {
+      const dots = QUIZ.map((_, i) => `<i class="${answers[i] === true ? "good" : answers[i] === false ? "bad" : i === qi ? "now" : ""}"></i>`).join("");
+      if (qi >= QUIZ.length) {
+        const score = answers.filter(Boolean).length;
+        $("quiz").innerHTML = `<div class="dots">${dots}</div>
+          <div class="quote">${score >= 4 ? "🏆" : score >= 3 ? "👍" : "🌱"} ${score} / ${QUIZ.length}</div>
+          <p class="note" style="text-align:center">The best replies all do the same thing: find the interest, offer options, keep it about the work.</p>
+          <div class="center-row"><button class="btn primary" data-restart>↺ Try again</button></div>`;
+        return;
+      }
+      const q = QUIZ[qi];
+      $("quiz").innerHTML = `<div class="dots">${dots}</div>
+        <div class="scene">${q.scene}</div>
+        <div class="quote">${q.quote}</div>
+        <div class="opts">${q.opts.map(([t], i) => {
+          const cls = picked === null ? "" : i === q.best ? "right" : i === picked ? "wrong" : "";
+          return `<button class="btn ${cls}" data-o="${i}" ${picked !== null ? "disabled" : ""}>${t}</button>`;
+        }).join("")}</div>
+        <div class="fb">${picked === null ? `<span class="note">Pick the reply you'd actually send.</span>` :
+          `<b class="${picked === q.best ? "good" : "bad"}">${picked === q.best ? "✓ Best reply." : "✗ Not the best."}</b> ${q.opts[picked][1]}
+           ${picked !== q.best ? `<br><b class="good">Better:</b> ${q.opts[q.best][1]}` : ""}`}</div>
+        ${picked !== null ? `<div class="center-row"><button class="btn primary" data-next>${qi === QUIZ.length - 1 ? "See score" : "Next →"}</button></div>` : ""}`;
+    }
+    $("quiz").onclick = (e) => {
+      const o = e.target.closest("[data-o]");
+      if (o && picked === null) { picked = +o.dataset.o; answers[qi] = picked === QUIZ[qi].best; renderQuiz(); return; }
+      if (e.target.closest("[data-next]")) { qi++; picked = null; renderQuiz(); return; }
+      if (e.target.closest("[data-restart]")) { qi = 0; answers = []; picked = null; renderQuiz(); }
+    };
+    renderQuiz();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"Can't you just make it happen?\"", "Absorb the cost quietly. Someone will pay it later.", "Happy to help. Which should give: scope, date, cost or quality?"],
+      ["\"Let's escalate.\"", "Take a decision to someone with more authority.", "What decision do we need, from whom, by when? Do both sides agree on the facts?"],
+      ["\"That's not my problem.\"", "Ownership is unclear, or they're overloaded.", "Who should own it? Can we agree on an owner today?"],
+      ["\"We need this by Friday, no excuses.\"", "The date is fixed, so something else has to flex.", "What must be true on Friday? What can follow next week?"],
+      ["\"Can we agree to disagree?\"", "Avoiding a decision that still needs making.", "If we must decide, who makes the call and by when?"],
+      ["\"Let's take this 1:1.\"", "A sensitive topic. Good for feedback and conflict.", "Agreed. What outcome do we need, and what do we share with the group after?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(10);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

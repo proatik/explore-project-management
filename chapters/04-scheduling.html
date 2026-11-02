@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Scheduling · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    /* ---------- Shared bits ---------- */
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .seg .btn { min-height: 44px; }
+    .seg .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .note { font-size: 13px; color: var(--muted); }
+    .msg { text-align: center; font-weight: 700; min-height: 1.6em; margin-top: 12px; }
+    .msg.good { color: var(--good); }
+    .msg.bad { color: var(--bad); }
+    .card h3 { margin: 0 0 10px; font-size: 17px; }
+    .legend-row { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 12px; }
+    .legend-row i { display: inline-block; width: 22px; height: 10px; border-radius: 4px; margin-right: 6px; vertical-align: middle; }
+    .lg-crit { background: var(--accent); }
+    .lg-norm { background: var(--muted); opacity: .55; }
+    .lg-float { border: 1.5px dashed var(--muted); height: 8px !important; }
+    .lg-dead { width: 3px !important; height: 14px !important; background: var(--bad); border-radius: 1px !important; }
+
+    /* ---------- Explore: ship in 6 weeks ---------- */
+    .ship { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .dep-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    @media (max-width: 600px) { .dep-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .dep {
+      font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; text-align: left;
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px;
+      border: 1.5px solid var(--line); background: var(--surface); color: var(--text); transition: border-color .2s, background .2s;
+    }
+    .dep .box { flex: none; width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; color: #fff; }
+    .dep[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+    .dep[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); }
+    .dep-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .dep-actions .btn { flex: 1; min-height: 44px; }
+    .verdict { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px; margin-bottom: 14px; font-weight: 700; }
+    .verdict.ok { background: var(--good-soft); color: var(--good); }
+    .verdict.late { background: var(--bad-soft); color: var(--bad); }
+    .verdict .big { font-size: 22px; }
+
+    .gantt { display: grid; grid-template-columns: 104px minmax(0, 1fr); row-gap: 8px; align-items: center; }
+    .g-name { font-size: 13px; font-weight: 700; padding-right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .g-scale { position: relative; height: 18px; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .g-scale span { position: absolute; top: 0; transform: translateX(2px); }
+    .g-track { position: relative; height: 28px; border-radius: 8px; background: var(--surface-2); overflow: hidden; }
+    .g-wk { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+    .g-bar {
+      position: absolute; top: 4px; bottom: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; font-style: normal; color: #fff; background: color-mix(in srgb, var(--muted) 70%, transparent);
+      transition: left .45s ease, width .45s ease, background .3s;
+    }
+    .g-bar.crit { background: var(--accent); }
+    .g-float { position: absolute; top: 9px; bottom: 9px; border: 1.5px dashed var(--muted); border-left: 0; border-radius: 0 6px 6px 0; transition: left .45s, width .45s; }
+    .g-dead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--bad); }
+    .g-dead-lbl { position: absolute; top: 0; font-size: 11px; font-weight: 800; color: var(--bad); transform: translateX(-100%); padding-right: 4px; white-space: nowrap; }
+
+    .speed { margin-top: 16px; }
+    .speed-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .speed-row .btn { min-height: 44px; font-size: 14px; }
+
+    /* ---------- Learn: dependency types ---------- */
+    .dt-wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: center; margin-top: 16px; }
+    @media (max-width: 700px) { .dt-wrap { grid-template-columns: 1fr; } }
+    .dt-svg { width: 100%; height: auto; display: block; }
+    .dt-svg .bar-a { fill: var(--accent); }
+    .dt-svg .bar-b { fill: color-mix(in srgb, var(--good) 80%, transparent); }
+    .dt-svg text { font-family: var(--font); font-weight: 800; font-size: 13px; fill: #fff; }
+    .dt-svg .arrow { stroke: var(--text); stroke-width: 2; fill: none; }
+    .dt-svg .axis-t { fill: var(--muted); font-size: 11px; font-weight: 700; }
+    .dt-name { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+    .dt-code { display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .08em; color: var(--accent); background: var(--accent-soft); padding: 2px 10px; border-radius: 999px; margin-bottom: 8px; }
+
+    .ll { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+    @media (max-width: 700px) { .ll { grid-template-columns: 1fr; } }
+    .ll-track { position: relative; height: 92px; border-radius: 12px; background: var(--surface-2); }
+    .ll-bar { position: absolute; height: 30px; border-radius: 8px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 800; color: #fff; transition: left .4s ease; }
+    .ll-dev { top: 12px; left: 4%; width: 46%; background: var(--accent); }
+    .ll-qa { top: 50px; width: 28%; background: color-mix(in srgb, var(--good) 80%, transparent); }
+    .ll-gap { position: absolute; top: 44px; height: 4px; border-radius: 2px; transition: left .4s, width .4s; }
+
+    .cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .cats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { .cats { grid-template-columns: 1fr; } }
+    .cats .card { padding: 16px; }
+    .cats .ic { font-size: 26px; }
+    .cats h4 { margin: 6px 0 4px; font-size: 16px; }
+    .cats p { margin: 0 0 6px; font-size: 14px; }
+    .cats .ex { font-size: 13px; color: var(--muted); }
+
+    .anat { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+    @media (max-width: 760px) { .anat { grid-template-columns: 1fr; } }
+    .an-svg { width: 100%; height: auto; display: block; }
+    .an-svg text { font-family: var(--font); font-size: 12px; font-weight: 700; fill: var(--text); }
+    .an-svg .lbl { fill: var(--muted); }
+    .an-svg .bar { fill: color-mix(in srgb, var(--accent) 35%, var(--surface-2)); }
+    .an-svg .prog { fill: var(--accent); }
+    .an-svg .base { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+    .an-svg .ms { fill: var(--warn); }
+    .an-svg .dep-a { stroke: var(--text); stroke-width: 1.5; fill: none; }
+    .an-svg .today { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 5 4; }
+    .an-svg .grid-l { stroke: var(--line); stroke-width: 1; }
+    .an-svg [data-part] { transition: opacity .25s; }
+    .an-svg.focus [data-part] { opacity: .2; }
+    .an-svg.focus [data-part].on { opacity: 1; }
+    .part-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .part-btns .btn { min-height: 44px; font-size: 14px; }
+    .part-btns .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .part-info { min-height: 72px; }
+    .part-info b { display: block; font-size: 17px; margin-bottom: 4px; }
+
+    /* ---------- CPM ---------- */
+    .cpm-svg { width: 100%; height: auto; display: block; }
+    .cpm-svg text { font-family: var(--font); fill: var(--text); }
+    .cpm-svg .node rect.box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .3s, fill .3s; }
+    .cpm-svg .node.crit rect.box { stroke: var(--accent); stroke-width: 3; fill: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+    .cpm-svg .div { stroke: var(--line); stroke-width: 1; }
+    .cpm-svg .v { font-size: 14px; font-weight: 800; }
+    .cpm-svg .v.dim { fill: var(--muted); font-weight: 600; }
+    .cpm-svg .v.fl0 { fill: var(--accent); }
+    .cpm-svg .nm { font-size: 13px; font-weight: 800; }
+    .cpm-svg .edge { stroke: var(--muted); stroke-width: 1.5; fill: none; opacity: .7; }
+    .cpm-svg .edge.crit { stroke: var(--accent); stroke-width: 3; opacity: 1; }
+    .cpm-svg .key text { font-size: 11px; fill: var(--muted); font-weight: 700; }
+    .cpm-explain { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: stretch; }
+    @media (max-width: 760px) { .cpm-explain { grid-template-columns: 1fr; } }
+    .formula { font-family: ui-monospace, Consolas, monospace; font-size: 14px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin: 8px 0 0; line-height: 1.7; }
+    .cpm-sum { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+    .cpm-sum .big { font-size: 30px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+    .dur-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 16px; }
+    .dur { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+    .dur.crit { border-color: var(--accent); }
+    .dur .t { font-size: 13px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dur .t b { color: var(--accent); }
+    .step { display: flex; align-items: center; gap: 4px; flex: none; }
+    .step button { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: inherit; font-size: 20px; font-weight: 800; cursor: pointer; }
+    .step button:disabled { opacity: .35; cursor: default; }
+    .step span { min-width: 26px; text-align: center; font-weight: 800; }
+
+    /* ---------- Compress ---------- */
+    .cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 700px) { .cmp { grid-template-columns: 1fr; } }
+    .mini { position: relative; height: 74px; border-radius: 12px; background: var(--surface-2); margin: 6px 0 12px; }
+    .mini i { position: absolute; height: 22px; border-radius: 6px; font-style: normal; font-size: 11px; font-weight: 800; color: #fff; display: flex; align-items: center; padding: 0 8px; white-space: nowrap; }
+    .mini .a { background: var(--accent); }
+    .mini .b { background: color-mix(in srgb, var(--good) 80%, transparent); }
+    .mini .ghost { background: transparent; border: 1.5px dashed var(--muted); color: var(--muted); }
+    .mini .risk { background: repeating-linear-gradient(45deg, var(--bad) 0 6px, transparent 6px 12px); opacity: .55; }
+    .pros { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 14px; }
+    .pros dt { font-weight: 800; color: var(--muted); }
+    .pros dd { margin: 0; }
+
+    .brooks { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 24px; align-items: center; }
+    @media (max-width: 600px) { .brooks { grid-template-columns: 1fr; justify-items: center; } }
+    .brooks svg { width: 100%; max-width: 220px; height: auto; }
+    .brooks line { stroke: var(--accent); stroke-width: 1.2; opacity: .55; }
+    .brooks circle { fill: var(--accent); stroke: var(--surface); stroke-width: 3; }
+    .paths { font-size: 34px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .team-step { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+
+    .lev { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+    @media (max-width: 700px) { .lev { grid-template-columns: 1fr; } }
+    .hist { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; align-items: end; height: 150px; padding: 0 4px; border-bottom: 2px solid var(--line); }
+    .hist .col { display: flex; flex-direction: column-reverse; height: 100%; }
+    .hist .ok { background: var(--accent); border-radius: 0 0 4px 4px; transition: height .4s; }
+    .hist .over { background: var(--bad); border-radius: 4px 4px 0 0; transition: height .4s; }
+    .hist .cap { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--warn); }
+    .hist .cap span { position: absolute; right: 0; top: -18px; font-size: 11px; font-weight: 800; color: var(--warn); }
+    .days { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 4px 4px 0; font-size: 11px; color: var(--muted); text-align: center; font-weight: 700; }
+    .lev-info b { display: block; font-size: 18px; margin-bottom: 6px; }
+
+    .cc { display: flex; height: 40px; border-radius: 10px; overflow: hidden; margin: 8px 0 4px; }
+    .cc i { display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; font-weight: 800; color: #fff; border-right: 2px solid var(--surface); }
+    .cc .t { background: var(--accent); }
+    .cc .pb { background: repeating-linear-gradient(45deg, var(--warn) 0 8px, color-mix(in srgb, var(--warn) 70%, transparent) 8px 16px); }
+    .cc-feed { display: flex; height: 30px; border-radius: 8px; overflow: hidden; width: 52%; margin-left: 4%; }
+    .cc-feed i { display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; font-weight: 800; color: #fff; }
+    .cc-feed .t2 { background: color-mix(in srgb, var(--good) 80%, transparent); flex: 3; }
+    .cc-feed .fb { background: repeating-linear-gradient(45deg, var(--warn) 0 6px, color-mix(in srgb, var(--warn) 70%, transparent) 6px 12px); flex: 1; }
+
+    /* ---------- Try ---------- */
+    .tq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+    @media (max-width: 900px) { .tq { grid-template-columns: 1fr; } }
+    .tq > .card:first-child { display: flex; flex-direction: column; justify-content: center; }
+    .tq-svg { width: 100%; height: auto; display: block; }
+    .tq-svg rect { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.5; }
+    .tq-svg text { font-family: var(--font); fill: var(--text); font-size: 13px; font-weight: 800; }
+    .tq-svg .d { fill: var(--muted); font-size: 12px; font-weight: 700; }
+    .tq-svg path { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+    .quiz-q { font-size: 19px; font-weight: 800; margin: 8px 0 14px; min-height: 52px; }
+    .opts { display: grid; gap: 8px; }
+    .opts .btn { min-height: 48px; text-align: left; font-weight: 700; }
+    .opts .btn.right { border-color: var(--good); background: var(--good-soft); }
+    .opts .btn.wrong { border-color: var(--bad); background: var(--bad-soft); }
+    .fb { margin-top: 12px; min-height: 44px; font-size: 14px; }
+    .fb b.good { color: var(--good); }
+    .fb b.bad { color: var(--bad); }
+    .dots { display: flex; gap: 6px; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+    .dots i.good { background: var(--good); }
+    .dots i.bad { background: var(--bad); }
+    .q-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+    .q-foot .btn { min-height: 44px; }
+
+    .scen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 700px) { .scen { grid-template-columns: 1fr; } }
+    .scen .card { display: flex; flex-direction: column; gap: 10px; }
+    .scen .s-txt { font-weight: 600; flex: 1; }
+    .scen .seg { justify-content: flex-start; }
+    .scen .seg .btn { flex: 1; white-space: nowrap; padding: 10px 8px; }
+    .scen .seg .btn.right { border-color: var(--good); background: var(--good-soft); }
+    .scen .seg .btn.wrong { border-color: var(--bad); background: var(--bad-soft); }
+    .scen .why { font-size: 14px; color: var(--muted); min-height: 40px; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 04 Scheduling</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 04 · Scheduling</div>
+      <h1>The longest path<br>sets the date.</h1>
+      <p>Dependencies, Gantt charts and the critical path, the way delivery teams really use them.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#learn">💡 Learn</a>
+        <a href="#cpm">🧮 Critical Path</a>
+        <a href="#compress">🗜️ Compress</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Can we ship in 6 weeks?</h2>
+      <p class="sub">Seven tasks, 30 working days. Tap the dependencies that are real and watch the launch day.</p>
+
+      <div class="ship">
+        <div class="card">
+          <h3>🔗 Dependencies</h3>
+          <div class="dep-list" id="dep-list"></div>
+          <div class="dep-actions">
+            <button class="btn" id="dep-all">Add all</button>
+            <button class="btn" id="dep-none">Clear</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="verdict" id="verdict"></div>
+          <div class="gantt" id="ship-gantt"></div>
+          <div class="legend-row">
+            <span><i class="lg-crit"></i>Critical (no float)</span>
+            <span><i class="lg-norm"></i>Has float</span>
+            <span><i class="lg-float"></i>Float</span>
+            <span><i class="lg-dead"></i>Deadline · day 30</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card speed">
+        <h3 style="text-align:center">⚡ Throw extra effort at one task (−2 days)</h3>
+        <div class="speed-row" id="speed-row"></div>
+        <div class="msg" id="speed-msg"></div>
+      </div>
+    </section>
+
+    <!-- ================= LEARN ================= -->
+    <section class="section" id="learn">
+      <span class="step-label">💡 Learn</span>
+      <h2>Four ways tasks depend on each other</h2>
+      <p class="sub">Tap a type. Bar A is the predecessor, bar B the successor.</p>
+
+      <div class="card">
+        <div class="seg" id="dt-tabs"></div>
+        <div class="dt-wrap">
+          <svg class="dt-svg" id="dt-svg" viewBox="0 0 320 120" role="img" aria-label="Dependency type diagram"></svg>
+          <div id="dt-info"></div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Leads and lags</h2>
+      <p class="sub">Shift a successor earlier or later than its dependency allows.</p>
+      <div class="card ll">
+        <div>
+          <div class="ll-track">
+            <div class="ll-bar ll-dev">Dev · 10d</div>
+            <div class="ll-gap" id="ll-gap"></div>
+            <div class="ll-bar ll-qa" id="ll-qa">QA · 6d</div>
+          </div>
+          <div class="seg" id="ll-tabs" style="margin-top:14px"></div>
+        </div>
+        <div id="ll-info"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Where dependencies come from</h2>
+      <p class="sub">Knowing the type tells you which ones you can negotiate.</p>
+      <div class="cats">
+        <div class="card"><div class="ic">🔒</div><h4>Mandatory</h4><p>Hard logic. Physically or technically required.</p><div class="ex">Can't test code that doesn't exist.</div></div>
+        <div class="card"><div class="ic">🤝</div><h4>Discretionary</h4><p>Soft logic. A team preference or best practice.</p><div class="ex">"Design sign-off before build." First to revisit when fast-tracking.</div></div>
+        <div class="card"><div class="ic">🌐</div><h4>External</h4><p>Outside the team's control.</p><div class="ex">Vendor API keys, another team's service, legal review.</div></div>
+        <div class="card"><div class="ic">🏠</div><h4>Internal</h4><p>Within the project's control.</p><div class="ex">Your own backend before your own frontend.</div></div>
+      </div>
+
+      <h2 style="margin-top:40px">Reading a Gantt chart</h2>
+      <p class="sub">Tap a part to spotlight it.</p>
+      <div class="card anat">
+        <svg class="an-svg" id="an-svg" viewBox="0 0 600 210" role="img" aria-label="Annotated Gantt chart">
+          <g class="grid-l">
+            <line x1="100" y1="12" x2="100" y2="190"/><line x1="222.5" y1="12" x2="222.5" y2="190"/>
+            <line x1="345" y1="12" x2="345" y2="190"/><line x1="467.5" y1="12" x2="467.5" y2="190"/><line x1="590" y1="12" x2="590" y2="190"/>
+          </g>
+          <text class="lbl" x="104" y="204">Wk 1</text><text class="lbl" x="226" y="204">Wk 2</text><text class="lbl" x="349" y="204">Wk 3</text><text class="lbl" x="471" y="204">Wk 4</text>
+          <text x="8" y="40">Design</text><text x="8" y="85">Build</text><text x="8" y="130">Beta</text><text x="8" y="175">Test</text>
+
+          <g data-part="bar"><rect class="bar" x="100" y="24" width="98" height="24" rx="6"/><rect class="bar" x="394" y="159" width="122.5" height="24" rx="6"/></g>
+          <g data-part="baseline"><rect class="base" x="198" y="66" width="147" height="30" rx="6"/></g>
+          <g data-part="bar2"><rect class="bar" x="198" y="69" width="196" height="24" rx="6"/></g>
+          <g data-part="progress"><rect class="prog" x="100" y="24" width="98" height="24" rx="6"/><rect class="prog" x="198" y="69" width="118" height="24" rx="6"/><text x="204" y="86" fill="#fff" style="fill:#fff">60%</text></g>
+          <g data-part="milestone"><polygon class="ms" points="394,107 406,119 394,131 382,119"/><text x="412" y="124">Beta ◆</text></g>
+          <g data-part="arrow">
+            <path class="dep-a" d="M198 48 V67" marker-end="url(#an-arr)"/>
+            <path class="dep-a" d="M394 93 v14" marker-end="url(#an-arr)"/>
+            <path class="dep-a" d="M394 131 v26" marker-end="url(#an-arr)"/>
+          </g>
+          <g data-part="today"><line class="today" x1="318" y1="12" x2="318" y2="190"/><text x="322" y="22" style="fill:var(--bad)">Today</text></g>
+          <defs><marker id="an-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="currentColor" style="fill:var(--text)"/></marker></defs>
+        </svg>
+        <div>
+          <div class="part-btns" id="part-btns"></div>
+          <div class="part-info" id="part-info"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CRITICAL PATH ================= -->
+    <section class="section" id="cpm">
+      <span class="step-label">🧮 Critical Path</span>
+      <h2>The Critical Path Method</h2>
+      <p class="sub">Walk the three steps, then change durations and watch the path move.</p>
+
+      <div class="seg" id="cpm-steps"></div>
+      <div class="card" style="margin-top:16px">
+        <svg class="cpm-svg" id="cpm-svg" viewBox="0 0 900 360" role="img" aria-label="Activity network with critical path"></svg>
+      </div>
+      <div class="cpm-explain">
+        <div class="card" id="cpm-rule"></div>
+        <div class="card cpm-sum" id="cpm-sum"></div>
+      </div>
+      <div class="dur-grid" id="dur-grid"></div>
+      <p class="note" style="text-align:center;margin-top:12px">Uses the day-0 convention (first task starts at 0). Some tools start counting at day 1, so numbers shift by one.</p>
+    </section>
+
+    <!-- ================= COMPRESS ================= -->
+    <section class="section" id="compress">
+      <span class="step-label">🗜️ Compress</span>
+      <h2>When the date is too late</h2>
+      <p class="sub">Two classic ways to shorten a schedule. Both only work on the critical path.</p>
+
+      <div class="cmp">
+        <div class="card">
+          <h3>💸 Crashing</h3>
+          <div class="mini">
+            <i class="ghost" style="left:4%;top:12px;width:62%">Backend · 10d (plan)</i>
+            <i class="a" style="left:4%;top:42px;width:44%">Backend · 7d + 2 devs</i>
+          </div>
+          <dl class="pros">
+            <dt>What</dt><dd>Add resources to critical tasks: people, overtime, paid tools.</dd>
+            <dt>Cost</dt><dd>Money goes up. Pick the cheapest day saved first.</dd>
+            <dt>Watch</dt><dd>Diminishing returns. Not every task speeds up with more people.</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>⏩ Fast-tracking</h3>
+          <div class="mini">
+            <i class="a" style="left:4%;top:12px;width:46%">Backend</i>
+            <i class="b" style="left:36%;top:42px;width:40%;padding-left:calc(14% + 8px)">Frontend</i>
+            <i class="risk" style="left:36%;top:42px;width:14%;opacity:.9" title="Overlap: rework risk"></i>
+          </div>
+          <dl class="pros">
+            <dt>What</dt><dd>Overlap tasks planned in sequence, e.g. build on a mocked API.</dd>
+            <dt>Cost</dt><dd>Little extra money, but more risk.</dd>
+            <dt>Watch</dt><dd>Rework when the overlapped work changes. Easiest on discretionary links.</dd>
+          </dl>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Brooks's law</h2>
+      <p class="sub">"Adding manpower to a late software project makes it later." Fred Brooks, <i>The Mythical Man-Month</i> (1975).</p>
+      <div class="card brooks">
+        <svg id="brooks-svg" viewBox="0 0 220 220" role="img" aria-label="Communication paths between team members"></svg>
+        <div>
+          <div class="paths" id="paths"></div>
+          <div class="note">communication paths: n × (n − 1) ÷ 2</div>
+          <div class="team-step">
+            <span style="font-weight:700">Team size</span>
+            <div class="step"><button id="team-minus" aria-label="Fewer people">−</button><span id="team-n"></span><button id="team-plus" aria-label="More people">+</button></div>
+          </div>
+          <ul class="bullets">
+            <li>New people need ramp-up time from the people already on the task.</li>
+            <li>Coordination grows much faster than headcount.</li>
+            <li>Adding people works best early, on tasks that split cleanly.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Leveling vs smoothing</h2>
+      <p class="sub">One developer is booked 12 hours on days 3 and 4. Two ways to fix it.</p>
+      <div class="card lev">
+        <div>
+          <div class="hist" id="hist"></div>
+          <div class="days" id="days"></div>
+          <div class="seg" id="lev-tabs" style="margin-top:14px"></div>
+        </div>
+        <div class="lev-info" id="lev-info"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Buffers: plan for being wrong</h2>
+      <p class="sub">The Critical Chain idea (Eliyahu Goldratt, 1997), in one picture.</p>
+      <div class="card">
+        <div class="cc"><i class="t" style="flex:2">Design</i><i class="t" style="flex:3">Build</i><i class="t" style="flex:2">Test</i><i class="pb" style="flex:2">Project buffer</i></div>
+        <div class="cc-feed"><i class="t2">Docs (side path)</i><i class="fb">Feed buffer</i></div>
+        <ul class="bullets" style="margin-top:14px">
+          <li>Take the hidden padding out of each task estimate.</li>
+          <li>Pool it at the end as one <b>project buffer</b> that protects the date.</li>
+          <li>Put a <b>feeding buffer</b> where a side path joins the critical chain.</li>
+          <li>Report how much buffer is used, not just task dates.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Read this network</h2>
+      <p class="sub">Five tasks, durations in days. Answer five questions.</p>
+      <div class="tq">
+        <div class="card">
+          <svg class="tq-svg" viewBox="0 0 440 210" role="img" aria-label="Small activity network">
+            <defs><marker id="tq-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" style="fill:var(--muted)"/></marker></defs>
+            <path d="M84 105 C100 105 100 55 112 55" marker-end="url(#tq-arr)"/>
+            <path d="M84 105 C100 105 100 155 112 155" marker-end="url(#tq-arr)"/>
+            <path d="M196 55 C214 55 214 105 230 105" marker-end="url(#tq-arr)"/>
+            <path d="M196 155 C214 155 214 105 230 105" marker-end="url(#tq-arr)"/>
+            <path d="M314 105 L342 105" marker-end="url(#tq-arr)"/>
+            <rect x="4" y="80" width="80" height="50" rx="10"/><text x="44" y="102" text-anchor="middle">P · Plan</text><text class="d" x="44" y="120" text-anchor="middle">2 days</text>
+            <rect x="114" y="30" width="82" height="50" rx="10"/><text x="155" y="52" text-anchor="middle">Q · Build</text><text class="d" x="155" y="70" text-anchor="middle">5 days</text>
+            <rect x="114" y="130" width="82" height="50" rx="10"/><text x="155" y="152" text-anchor="middle">R · Content</text><text class="d" x="155" y="170" text-anchor="middle">3 days</text>
+            <rect x="232" y="80" width="82" height="50" rx="10"/><text x="273" y="102" text-anchor="middle">S · Review</text><text class="d" x="273" y="120" text-anchor="middle">2 days</text>
+            <rect x="344" y="80" width="90" height="50" rx="10"/><text x="389" y="102" text-anchor="middle">T · Release</text><text class="d" x="389" y="120" text-anchor="middle">1 day</text>
+          </svg>
+          <p class="note" style="text-align:center;margin:8px 0 0">All links are finish-to-start.</p>
+        </div>
+        <div class="card" id="quiz"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Crash, fast-track, or neither?</h2>
+      <p class="sub">Pick the best move for each situation.</p>
+      <div class="scen" id="scen"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When the team says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>The <b>critical path</b> sets the end date. <b>Float</b> shows where you have slack.</li>
+          <li>Speeding up work off the critical path doesn't move the date.</li>
+          <li>Compress with eyes open: <b>crashing</b> costs money, <b>fast-tracking</b> adds risk.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    function cpm(tasks, deps) {
+      const r = {};
+      tasks.forEach(t => {
+        const preds = deps.filter(([, b]) => b === t.id).map(([a]) => a);
+        const es = preds.length ? Math.max(...preds.map(p => r[p].ef)) : 0;
+        r[t.id] = { es, ef: es + t.d };
+      });
+      const finish = Math.max(...tasks.map(t => r[t.id].ef));
+      [...tasks].reverse().forEach(t => {
+        const succ = deps.filter(([a]) => a === t.id).map(([, b]) => b);
+        const lf = succ.length ? Math.min(...succ.map(s => r[s].ls)) : finish;
+        Object.assign(r[t.id], { lf, ls: lf - t.d, fl: lf - t.d - r[t.id].es });
+      });
+      return { r, finish };
+    }
+    const $ = id => document.getElementById(id);
+
+    /* ---------- Explore: ship in 6 weeks ---------- */
+    const REL = [
+      { id: "D", name: "Design", d: 5 }, { id: "M", name: "DB migration", d: 4 }, { id: "A", name: "API", d: 10 },
+      { id: "F", name: "Frontend", d: 8 }, { id: "Q", name: "QA", d: 5 }, { id: "C", name: "Docs", d: 3 }, { id: "L", name: "Launch", d: 1 },
+    ];
+    const DEPS = [["D", "A"], ["M", "A"], ["D", "F"], ["A", "F"], ["A", "Q"], ["F", "Q"], ["F", "C"], ["Q", "L"], ["C", "L"]];
+    const DEADLINE = 30;
+    const nameOf = id => REL.find(t => t.id === id).name;
+    const on = new Set();
+    const cut = {};
+    const relTasks = () => REL.map(t => ({ ...t, d: Math.max(1, t.d - (cut[t.id] || 0)) }));
+    const relRun = () => cpm(relTasks(), DEPS.filter((_, i) => on.has(i)));
+
+    function renderShip() {
+      $("dep-list").innerHTML = DEPS.map(([a, b], i) =>
+        `<button class="dep" data-dep="${i}" aria-pressed="${on.has(i)}"><span class="box">${on.has(i) ? "✓" : ""}</span>${nameOf(a)} → ${nameOf(b)}</button>`).join("");
+      const tasks = relTasks();
+      const { r, finish } = relRun();
+      const scale = Math.max(DEADLINE, finish);
+      const pct = v => (v / scale * 100).toFixed(2) + "%";
+      const v = $("verdict");
+      if (on.size === 0) {
+        v.className = "verdict ok";
+        v.innerHTML = `<span>No dependencies: everything runs at once</span><span class="big">Day ${finish}</span>`;
+      } else if (finish <= DEADLINE) {
+        v.className = "verdict ok";
+        v.innerHTML = `<span>✅ Ships in time · ${DEADLINE - finish} day${DEADLINE - finish === 1 ? "" : "s"} to spare</span><span class="big">Day ${finish} / ${DEADLINE}</span>`;
+      } else {
+        v.className = "verdict late";
+        v.innerHTML = `<span>❌ ${finish - DEADLINE} days late</span><span class="big">Day ${finish} / ${DEADLINE}</span>`;
+      }
+      const weeks = Math.ceil(scale / 5);
+      let html = `<span></span><div class="g-scale">${Array.from({ length: weeks }, (_, w) => `<span style="left:${pct(w * 5)}">Wk ${w + 1}</span>`).join("")}</div>`;
+      tasks.forEach(t => {
+        const x = r[t.id], crit = x.fl === 0;
+        html += `<span class="g-name">${t.name}</span><div class="g-track">
+          ${Array.from({ length: weeks - 1 }, (_, w) => `<i class="g-wk" style="left:${pct((w + 1) * 5)}"></i>`).join("")}
+          ${x.fl > 0 ? `<i class="g-float" style="left:${pct(x.ef)};width:${pct(x.fl)}"></i>` : ""}
+          <i class="g-bar ${crit ? "crit" : ""}" style="left:${pct(x.es)};width:${pct(t.d)}">${t.d}d</i>
+          <i class="g-dead" style="left:calc(${pct(DEADLINE)} - 2px)"></i>
+        </div>`;
+      });
+      $("ship-gantt").innerHTML = html;
+      $("speed-row").innerHTML = tasks.map(t =>
+        `<button class="btn" data-speed="${t.id}" ${t.d <= 1 ? "disabled" : ""}>−2d ${t.name}</button>`).join("") +
+        `<button class="btn" id="speed-reset">↺ Reset</button>`;
+    }
+    $("explore").addEventListener("click", e => {
+      const dep = e.target.closest("[data-dep]");
+      const sp = e.target.closest("[data-speed]");
+      if (dep) { const i = +dep.dataset.dep; on.has(i) ? on.delete(i) : on.add(i); $("speed-msg").textContent = ""; renderShip(); }
+      if (e.target.id === "dep-all") { DEPS.forEach((_, i) => on.add(i)); $("speed-msg").textContent = ""; renderShip(); }
+      if (e.target.id === "dep-none") { on.clear(); $("speed-msg").textContent = ""; renderShip(); }
+      if (e.target.id === "speed-reset") { Object.keys(cut).forEach(k => delete cut[k]); $("speed-msg").textContent = ""; renderShip(); }
+      if (sp) {
+        const id = sp.dataset.speed, before = relRun(), fl = before.r[id].fl;
+        cut[id] = (cut[id] || 0) + 2;
+        const after = relRun(), m = $("speed-msg");
+        if (after.finish < before.finish) { m.className = "msg good"; m.textContent = `✅ ${nameOf(id)} was critical: launch moved from day ${before.finish} to day ${after.finish}.`; }
+        else if (fl > 0) { m.className = "msg bad"; m.textContent = `😐 ${nameOf(id)} had ${fl} day${fl === 1 ? "" : "s"} of float. The launch day didn't move.`; }
+        else { m.className = "msg bad"; m.textContent = `😐 Another path is just as long, so the launch day didn't move.`; }
+        renderShip();
+      }
+    });
+    renderShip();
+
+    /* ---------- Learn: dependency types ---------- */
+    const DT = [
+      { code: "FS", name: "Finish-to-Start", rule: "B can't start until A finishes.", ex: "Merge the PR after code review finishes.", note: "The most common type and the default in most tools.",
+        a: [20, 150], b: [170, 300], arrow: "M150 45 C162 45 158 85 168 85" },
+      { code: "SS", name: "Start-to-Start", rule: "B can't start until A starts.", ex: "Writing tests starts once coding starts.", note: "Lets related work run side by side.",
+        a: [20, 200], b: [70, 260], arrow: "M24 45 C24 80 40 85 68 85" },
+      { code: "FF", name: "Finish-to-Finish", rule: "B can't finish until A finishes.", ex: "Docs can't be finished until the feature is finished.", note: "Common for documentation, QA sign-off and reviews.",
+        a: [20, 220], b: [110, 220], arrow: "M220 45 C236 45 236 85 222 85" },
+      { code: "SF", name: "Start-to-Finish", rule: "B can't finish until A starts.", ex: "The old system can't be switched off until the new one starts (cutover).", note: "Rare. Often a sign to rethink the plan.",
+        a: [170, 300], b: [20, 170], arrow: "M172 45 C172 70 172 75 172 72" },
+    ];
+    let dtActive = 0;
+    function renderDt() {
+      const d = DT[dtActive];
+      $("dt-tabs").innerHTML = DT.map((x, i) => `<button class="btn ${i === dtActive ? "active" : ""}" data-dt="${i}">${x.code}</button>`).join("");
+      $("dt-svg").innerHTML = `
+        <defs><marker id="dt-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" style="fill:var(--text)"/></marker></defs>
+        <rect class="bar-a" x="${d.a[0]}" y="30" width="${d.a[1] - d.a[0]}" height="30" rx="7"/><text x="${d.a[0] + 10}" y="50">A</text>
+        <rect class="bar-b" x="${d.b[0]}" y="70" width="${d.b[1] - d.b[0]}" height="30" rx="7"/><text x="${d.b[0] + 10}" y="90">B</text>
+        <path class="arrow" d="${d.code === "SF" ? "M170 45 L170 70" : d.arrow}" marker-end="url(#dt-arr)"/>
+        <text class="axis-t" x="20" y="116">time →</text>`;
+      $("dt-info").innerHTML = `<div class="dt-code">${d.code}</div><div class="dt-name">${d.name}</div>
+        <ul class="bullets"><li><b>${d.rule}</b></li><li>${d.ex}</li><li>${d.note}</li></ul>`;
+    }
+    $("dt-tabs").onclick = e => { const b = e.target.closest("[data-dt]"); if (b) { dtActive = +b.dataset.dt; renderDt(); } };
+    renderDt();
+
+    const LL = [
+      { label: "Lead −2d", off: -2, title: "Lead: start early", ex: "QA starts 2 days before dev ends, on modules already finished.", risk: "Overlap means some rework risk." },
+      { label: "None", off: 0, title: "No lead or lag", ex: "QA starts the moment dev finishes.", risk: "The default finish-to-start link." },
+      { label: "Lag +2d", off: 2, title: "Lag: wait first", ex: "QA starts 2 days after dev ends, once the build has soaked on staging.", risk: "A lag is planned waiting time, not a task." },
+    ];
+    let llActive = 1;
+    function renderLl() {
+      const l = LL[llActive], unit = 4.6, start = 4 + 10 * unit + l.off * unit;
+      $("ll-tabs").innerHTML = LL.map((x, i) => `<button class="btn ${i === llActive ? "active" : ""}" data-ll="${i}">${x.label}</button>`).join("");
+      $("ll-qa").style.left = start + "%";
+      const g = $("ll-gap"), devEnd = 4 + 10 * unit;
+      g.style.left = Math.min(devEnd, start) + "%";
+      g.style.width = Math.abs(start - devEnd) + "%";
+      g.style.background = l.off < 0 ? "var(--bad)" : "var(--warn)";
+      $("ll-info").innerHTML = `<div class="dt-name" style="font-size:20px">${l.title}</div><ul class="bullets"><li>${l.ex}</li><li>${l.risk}</li></ul>`;
+    }
+    $("ll-tabs").onclick = e => { const b = e.target.closest("[data-ll]"); if (b) { llActive = +b.dataset.ll; renderLl(); } };
+    renderLl();
+
+    const PARTS = [
+      ["bar", "Task bar", "Start, duration and end of an activity."],
+      ["progress", "Progress", "% complete. Ask how it's measured: time spent isn't work done."],
+      ["milestone", "Milestone", "A zero-duration checkpoint: beta, sign-off, launch."],
+      ["arrow", "Dependency", "Shows what's waiting on what. Usually finish-to-start."],
+      ["today", "Today line", "Anything left of it should be done or in progress."],
+      ["baseline", "Baseline", "The approved plan (dashed) vs reality. The gap is schedule variance."],
+    ];
+    let partActive = -1;
+    function renderParts() {
+      $("part-btns").innerHTML = PARTS.map((p, i) => `<button class="btn ${i === partActive ? "active" : ""}" data-part-btn="${i}">${p[1]}</button>`).join("");
+      const svg = $("an-svg");
+      svg.classList.toggle("focus", partActive >= 0);
+      svg.querySelectorAll("[data-part]").forEach(g => {
+        const key = partActive >= 0 ? PARTS[partActive][0] : "";
+        g.classList.toggle("on", g.dataset.part === key || (key === "bar" && g.dataset.part === "bar2") || (key === "baseline" && g.dataset.part === "bar2"));
+      });
+      $("part-info").innerHTML = partActive >= 0
+        ? `<b>${PARTS[partActive][1]}</b>${PARTS[partActive][2]}`
+        : `<b>Build is slipping</b>The baseline says Build ends in week 3. The actual bar runs into week 4, and only 60% is done.`;
+    }
+    $("part-btns").onclick = e => { const b = e.target.closest("[data-part-btn]"); if (b) { const i = +b.dataset.partBtn; partActive = partActive === i ? -1 : i; renderParts(); } };
+    renderParts();
+
+    /* ---------- CPM ---------- */
+    const NET = [
+      { id: "A", name: "Requirements", d: 3, x: 20, y: 135 },
+      { id: "B", name: "Design", d: 4, x: 200, y: 70 },
+      { id: "F", name: "Test plan", d: 2, x: 200, y: 245 },
+      { id: "C", name: "Backend", d: 6, x: 380, y: 10 },
+      { id: "D", name: "Frontend", d: 5, x: 380, y: 135 },
+      { id: "E", name: "Integration", d: 3, x: 560, y: 70 },
+      { id: "G", name: "Testing", d: 4, x: 740, y: 135 },
+    ];
+    const NET_DEPS = [["A", "B"], ["A", "F"], ["B", "C"], ["B", "D"], ["C", "E"], ["D", "E"], ["E", "G"], ["F", "G"]];
+    const NW = 140, NH = 96;
+    const base = Object.fromEntries(NET.map(n => [n.id, n.d]));
+    let cpmStep = 2;
+    const STEPS = [
+      { label: "1 · Forward pass", rule: `<h3>➡️ Forward pass</h3><ul class="bullets"><li>Start at the left. First task: ES = 0.</li><li>ES = the <b>latest</b> EF of all predecessors.</li><li>The largest EF is the project duration.</li></ul><div class="formula">EF = ES + duration</div>` },
+      { label: "2 · Backward pass", rule: `<h3>⬅️ Backward pass</h3><ul class="bullets"><li>Start at the right. Last task: LF = project duration.</li><li>LF = the <b>earliest</b> LS of all successors.</li></ul><div class="formula">LS = LF − duration</div>` },
+      { label: "3 · Float & critical path", rule: `<h3>🎯 Float & critical path</h3><ul class="bullets"><li>Total float: how long a task can slip without delaying the project.</li><li>Zero float = critical. Those tasks form the critical path.</li></ul><div class="formula">Float = LS − ES = LF − EF</div>` },
+    ];
+    function critPaths(net, r) {
+      const crit = net.filter(n => r[n.id].fl === 0).map(n => n.id);
+      const nexts = id => NET_DEPS.filter(([a, b]) => a === id && crit.includes(b) && r[b].es === r[a].ef).map(([, b]) => b);
+      const starts = crit.filter(id => !NET_DEPS.some(([a, b]) => b === id && crit.includes(a) && r[id].es === r[a].ef));
+      const paths = [];
+      const walk = (id, acc) => { const nx = nexts(id); if (!nx.length) paths.push([...acc, id]); nx.forEach(n => walk(n, [...acc, id])); };
+      starts.forEach(s => walk(s, []));
+      return paths;
+    }
+    function renderCpm() {
+      const { r, finish } = cpm(NET, NET_DEPS);
+      const show = { fwd: cpmStep >= 0, bwd: cpmStep >= 1, fl: cpmStep >= 2 };
+      $("cpm-steps").innerHTML = STEPS.map((s, i) => `<button class="btn ${i === cpmStep ? "active" : ""}" data-step="${i}">${s.label}</button>`).join("");
+      const pos = Object.fromEntries(NET.map(n => [n.id, n]));
+      let svg = `<defs><marker id="cpm-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" style="fill:var(--muted)"/></marker>
+        <marker id="cpm-arr-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10z" style="fill:var(--accent)"/></marker></defs>`;
+      NET_DEPS.forEach(([a, b]) => {
+        const p = pos[a], q = pos[b];
+        const x1 = p.x + NW, y1 = p.y + NH / 2, x2 = q.x - 2, y2 = q.y + NH / 2, mx = (x1 + x2) / 2;
+        const crit = show.fl && r[a].fl === 0 && r[b].fl === 0 && r[b].es === r[a].ef;
+        svg += `<path class="edge ${crit ? "crit" : ""}" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}" marker-end="url(#${crit ? "cpm-arr-c" : "cpm-arr"})"/>`;
+      });
+      NET.forEach(n => {
+        const x = r[n.id], crit = show.fl && x.fl === 0, c3 = NW / 3;
+        const val = (v, on, cls = "") => `<tspan class="v ${on ? cls : "dim"}">${on ? v : "·"}</tspan>`;
+        svg += `<g class="node ${crit ? "crit" : ""}" transform="translate(${n.x} ${n.y})">
+          <rect class="box" width="${NW}" height="${NH}" rx="12"/>
+          <line class="div" x1="0" y1="30" x2="${NW}" y2="30"/><line class="div" x1="0" y1="66" x2="${NW}" y2="66"/>
+          <line class="div" x1="${c3}" y1="0" x2="${c3}" y2="30"/><line class="div" x1="${2 * c3}" y1="0" x2="${2 * c3}" y2="30"/>
+          <line class="div" x1="${c3}" y1="66" x2="${c3}" y2="${NH}"/><line class="div" x1="${2 * c3}" y1="66" x2="${2 * c3}" y2="${NH}"/>
+          <text x="${c3 / 2}" y="21" text-anchor="middle">${val(x.es, show.fwd)}</text>
+          <text x="${c3 * 1.5}" y="21" text-anchor="middle"><tspan class="v">${n.d}</tspan></text>
+          <text x="${c3 * 2.5}" y="21" text-anchor="middle">${val(x.ef, show.fwd)}</text>
+          <text x="${NW / 2}" y="53" text-anchor="middle" class="nm">${n.id} · ${n.name}</text>
+          <text x="${c3 / 2}" y="87" text-anchor="middle">${val(x.ls, show.bwd)}</text>
+          <text x="${c3 * 1.5}" y="87" text-anchor="middle">${val(x.fl, show.fl, x.fl === 0 ? "fl0" : "")}</text>
+          <text x="${c3 * 2.5}" y="87" text-anchor="middle">${val(x.lf, show.bwd)}</text>
+        </g>`;
+      });
+      svg += `<g class="key" transform="translate(560 248)">
+        <rect width="${NW}" height="${NH}" rx="12" style="fill:none;stroke:var(--line);stroke-dasharray:4 3"/>
+        <text x="23" y="20" text-anchor="middle">ES</text><text x="70" y="20" text-anchor="middle">Dur</text><text x="117" y="20" text-anchor="middle">EF</text>
+        <text x="70" y="53" text-anchor="middle">Task</text>
+        <text x="23" y="86" text-anchor="middle">LS</text><text x="70" y="86" text-anchor="middle">Float</text><text x="117" y="86" text-anchor="middle">LF</text>
+      </g>`;
+      $("cpm-svg").innerHTML = svg;
+      $("cpm-rule").innerHTML = STEPS[cpmStep].rule;
+      const paths = critPaths(NET, r);
+      $("cpm-sum").innerHTML = `<div class="note">Project duration</div><div class="big">${finish} days</div>
+        <div class="note" style="margin-top:8px">Critical path${paths.length > 1 ? "s" : ""}</div>
+        <div style="font-weight:800">${show.fl ? paths.map(p => p.join(" → ")).join("<br>") : "Finish step 3 to reveal"}</div>`;
+      $("dur-grid").innerHTML = NET.map(n => `<div class="dur ${show.fl && r[n.id].fl === 0 ? "crit" : ""}">
+        <span class="t"><b>${n.id}</b> ${n.name}</span>
+        <span class="step"><button data-dur="${n.id}" data-delta="-1" ${n.d <= 1 ? "disabled" : ""} aria-label="Shorten ${n.name}">−</button><span>${n.d}</span><button data-dur="${n.id}" data-delta="1" ${n.d >= 12 ? "disabled" : ""} aria-label="Lengthen ${n.name}">+</button></span>
+      </div>`).join("") + `<button class="btn" id="dur-reset" style="min-height:44px">↺ Reset durations</button>`;
+    }
+    $("cpm").addEventListener("click", e => {
+      const s = e.target.closest("[data-step]"), d = e.target.closest("[data-dur]");
+      if (s) { cpmStep = +s.dataset.step; renderCpm(); }
+      if (d) { const n = NET.find(x => x.id === d.dataset.dur); n.d = Math.min(12, Math.max(1, n.d + +d.dataset.delta)); renderCpm(); }
+      if (e.target.id === "dur-reset") { NET.forEach(n => n.d = base[n.id]); renderCpm(); }
+    });
+    renderCpm();
+
+    /* ---------- Brooks ---------- */
+    let team = 4;
+    function renderBrooks() {
+      const pts = Array.from({ length: team }, (_, i) => {
+        const a = -Math.PI / 2 + i * 2 * Math.PI / team;
+        return [110 + 88 * Math.cos(a), 110 + 88 * Math.sin(a)];
+      });
+      let s = "";
+      for (let i = 0; i < team; i++) for (let j = i + 1; j < team; j++) s += `<line x1="${pts[i][0]}" y1="${pts[i][1]}" x2="${pts[j][0]}" y2="${pts[j][1]}"/>`;
+      s += pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="11"/>`).join("");
+      $("brooks-svg").innerHTML = s;
+      $("paths").textContent = `${team * (team - 1) / 2} paths`;
+      $("team-n").textContent = team;
+      $("team-minus").disabled = team <= 2;
+      $("team-plus").disabled = team >= 12;
+    }
+    $("team-minus").onclick = () => { team = Math.max(2, team - 1); renderBrooks(); };
+    $("team-plus").onclick = () => { team = Math.min(12, team + 1); renderBrooks(); };
+    renderBrooks();
+
+    /* ---------- Leveling vs smoothing ---------- */
+    const CAP = 8, MAXH = 12;
+    const LEV = [
+      { label: "Before", h: [8, 8, 12, 12, 8, 8, 8, 0], title: "⚠️ Over-allocated", pts: ["8 hours a day is the capacity.", "Days 3 and 4 need 12 hours.", "Ends on day 7."] },
+      { label: "Smoothing", h: [8, 8, 10, 10, 10, 9, 9, 0], title: "🫧 Resource smoothing", pts: ["The end date is fixed.", "Work moves only within available float.", "Peaks drop, but may still exceed capacity.", "Still ends on day 7."] },
+      { label: "Leveling", h: [8, 8, 8, 8, 8, 8, 8, 8], title: "📏 Resource leveling", pts: ["Capacity is never exceeded.", "Work is pushed later when needed.", "The end date can move: day 7 → day 8.", "Use when people, not the date, are the hard limit."] },
+    ];
+    let levActive = 0;
+    function renderLev() {
+      const l = LEV[levActive];
+      $("lev-tabs").innerHTML = LEV.map((x, i) => `<button class="btn ${i === levActive ? "active" : ""}" data-lev="${i}">${x.label}</button>`).join("");
+      $("hist").innerHTML = l.h.map(h => `<div class="col"><div class="ok" style="height:${Math.min(h, CAP) / MAXH * 100}%"></div><div class="over" style="height:${Math.max(0, h - CAP) / MAXH * 100}%"></div></div>`).join("")
+        + `<div class="cap" style="bottom:${CAP / MAXH * 100}%"><span>8h capacity</span></div>`;
+      $("days").innerHTML = l.h.map((_, i) => `<span>D${i + 1}</span>`).join("");
+      $("lev-info").innerHTML = `<b>${l.title}</b><ul class="bullets">${l.pts.map(p => `<li>${p}</li>`).join("")}</ul>`;
+    }
+    $("lev-tabs").onclick = e => { const b = e.target.closest("[data-lev]"); if (b) { levActive = +b.dataset.lev; renderLev(); } };
+    renderLev();
+
+    /* ---------- Try: network quiz ---------- */
+    const QUIZ = [
+      { q: "What's the project duration?", o: ["9 days", "10 days", "13 days"], a: 1, why: "Longest path P → Q → S → T = 2 + 5 + 2 + 1 = 10. Adding every task (13) ignores that Q and R run in parallel." },
+      { q: "Which is the critical path?", o: ["P → Q → S → T", "P → R → S → T", "All five tasks"], a: 0, why: "Q (5 days) is longer than R (3 days), so the path through Q has zero float." },
+      { q: "How much total float does R · Content have?", o: ["0 days", "2 days", "3 days"], a: 1, why: "R: ES 2, EF 5. S can't start before day 7, so LF = 7 and float = 7 − 5 = 2." },
+      { q: "R slips by 3 days. New project duration?", o: ["10 days", "11 days", "13 days"], a: 1, why: "R now ends on day 8, one day after Q. It uses its 2 days of float, then delays S by 1 day: 11." },
+      { q: "Instead, Q finishes 1 day early. New duration?", o: ["8 days", "9 days", "10 days"], a: 1, why: "Q ends day 6, R ends day 5, so S runs 6–8 and T ends on day 9. Q was critical, so the date moves." },
+    ];
+    let qi = 0, answers = [];
+    function renderQuiz() {
+      const dots = QUIZ.map((_, i) => `<i class="${answers[i] === true ? "good" : answers[i] === false ? "bad" : ""}"></i>`).join("");
+      if (qi >= QUIZ.length) {
+        const score = answers.filter(Boolean).length;
+        $("quiz").innerHTML = `<div class="dots">${dots}</div>
+          <div class="quiz-q">${score === QUIZ.length ? "🏆" : score >= 3 ? "👍" : "🌱"} ${score} / ${QUIZ.length} correct</div>
+          <ul class="bullets"><li>Duration comes from the <b>longest</b> path, not the sum.</li><li>Float absorbs slips until it runs out.</li><li>Only critical tasks move the end date.</li></ul>
+          <div class="q-foot"><span></span><button class="btn primary" data-retry>Try again</button></div>`;
+        return;
+      }
+      const item = QUIZ[qi], done = answers[qi] !== undefined;
+      $("quiz").innerHTML = `<div class="dots">${dots}</div>
+        <div class="quiz-q">${item.q}</div>
+        <div class="opts">${item.o.map((o, i) => `<button class="btn ${done && i === item.a ? "right" : ""} ${done && i === item.pick && i !== item.a ? "wrong" : ""}" data-opt="${i}" ${done ? "disabled" : ""}>${o}</button>`).join("")}</div>
+        <div class="fb">${done ? `<b class="${answers[qi] ? "good" : "bad"}">${answers[qi] ? "✓ Correct." : "✗ Not quite."}</b> ${item.why}` : ""}</div>
+        <div class="q-foot"><span class="note">Question ${qi + 1} of ${QUIZ.length}</span>${done ? `<button class="btn primary" data-next>${qi === QUIZ.length - 1 ? "See result" : "Next →"}</button>` : ""}</div>`;
+    }
+    $("quiz").onclick = e => {
+      const o = e.target.closest("[data-opt]");
+      if (o && answers[qi] === undefined) { QUIZ[qi].pick = +o.dataset.opt; answers[qi] = +o.dataset.opt === QUIZ[qi].a; renderQuiz(); }
+      if (e.target.closest("[data-next]")) { qi++; renderQuiz(); }
+      if (e.target.closest("[data-retry]")) { qi = 0; answers = []; renderQuiz(); }
+    };
+    renderQuiz();
+
+    /* ---------- Try: crash or fast-track ---------- */
+    const MOVES = ["Crash", "Fast-track", "Neither"];
+    const SCEN = [
+      { s: "Backend is critical and 4 days late. There's budget for a contractor who knows the codebase, and frontend can't start without the finished API.", a: 0, why: "The tasks can't overlap, but money is available and the work splits cleanly. Crash it." },
+      { s: "Budget is frozen. Frontend could start now against a mocked API instead of waiting for the backend.", a: 1, why: "Overlapping on a mock is classic fast-tracking: little cost, some rework risk if the API changes." },
+      { s: "Docs are running 3 days late, but the docs task has 5 days of float.", a: 2, why: "It isn't on the critical path. The slip is absorbed by float, so no compression is needed. Keep watching it." },
+      { s: "Dev and QA already overlap heavily and the defect rate is climbing. There's money for an experienced tester.", a: 0, why: "More overlap would add more rework. Adding a skilled person to the critical work is the safer move." },
+    ];
+    const picks = [];
+    function renderScen() {
+      $("scen").innerHTML = SCEN.map((x, i) => {
+        const p = picks[i];
+        return `<div class="card"><div class="s-txt">${x.s}</div>
+          <div class="seg">${MOVES.map((m, j) => `<button class="btn ${p !== undefined && j === x.a ? "right" : ""} ${p === j && j !== x.a ? "wrong" : ""}" data-scen="${i}" data-move="${j}" ${p !== undefined ? "disabled" : ""}>${m}</button>`).join("")}</div>
+          <div class="why">${p !== undefined ? `<b style="color:var(${p === x.a ? "--good" : "--bad"})">${p === x.a ? "✓" : "✗ Best: " + MOVES[x.a] + "."}</b> ${x.why}` : ""}</div></div>`;
+      }).join("");
+    }
+    $("scen").onclick = e => { const b = e.target.closest("[data-scen]"); if (b) { picks[+b.dataset.scen] = +b.dataset.move; renderScen(); } };
+    renderScen();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"That's on the critical path.\"", "Any delay to it delays the whole project.", "How many days is the slip, and what's the recovery plan?"],
+      ["\"How much float do we have?\"", "How long a task can slip before the end date moves.", "Is that float shared with other tasks on the same path?"],
+      ["\"Can we fast-track it?\"", "Overlap tasks that would normally run in sequence.", "What rework risk are we accepting, and who signs off on it?"],
+      ["\"We're blocked by another team.\"", "An external dependency is late.", "Who owns it, what's their committed date, and can we unblock with a mock?"],
+      ["\"The milestone slipped.\"", "A zero-duration checkpoint moved.", "Does it move the release, or is there float before launch?"],
+      ["\"Let's re-baseline.\"", "Replace the approved schedule with a new plan.", "Why now, who approves it, and do we keep the old baseline to report variance?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(4);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

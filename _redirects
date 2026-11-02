@@ -1,0 +1,15 @@
+# Clean chapter URLs
+/chapters/foundations  /chapters/00-foundations.html  200
+/chapters/initiation  /chapters/01-initiation.html  200
+/chapters/scope  /chapters/02-scope.html  200
+/chapters/estimation  /chapters/03-estimation.html  200
+/chapters/scheduling  /chapters/04-scheduling.html  200
+/chapters/team-resources  /chapters/05-team-resources.html  200
+/chapters/risk  /chapters/06-risk.html  200
+/chapters/budget-tracking  /chapters/07-budget-tracking.html  200
+/chapters/methodologies  /chapters/08-methodologies.html  200
+/chapters/stakeholder-communication  /chapters/09-stakeholder-communication.html  200
+/chapters/hard-conversations  /chapters/10-hard-conversations.html  200
+/chapters/technical-pm  /chapters/11-technical-pm.html  200
+/chapters/delivery-closure  /chapters/12-delivery-closure.html  200
+/chapters/capstone  /chapters/13-capstone.html  200

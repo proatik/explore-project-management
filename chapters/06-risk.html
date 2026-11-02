@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Risk · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    :root { --amber: #c98a0b; --amber-soft: color-mix(in srgb, #c98a0b 22%, var(--surface)); }
+
+    /* ---------- Shared bits ---------- */
+    .seg { display: inline-flex; background: var(--surface-2); border-radius: 12px; padding: 4px; gap: 4px; }
+    .seg button { font: inherit; font-size: 14px; font-weight: 700; min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+    .seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .seg button.on.mit { color: var(--good); }
+    .seg button.on.ign { color: var(--bad); }
+    .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+    .h4 { margin: 0 0 8px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+
+    /* ---------- Explore: risk or issue ---------- */
+    .def-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .def { display: flex; gap: 14px; align-items: center; }
+    .def .e { font-size: 32px; }
+    .def b { display: block; font-size: 17px; }
+    .def span { color: var(--muted); font-size: 14px; }
+    .risk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 600px) { .risk-grid { grid-template-columns: 1fr; } }
+    .risk-row { display: flex; flex-direction: column; }
+    .risk-row .seg { align-self: flex-start; margin-top: auto; }
+    .tl-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 700px) { .tl-grid { grid-template-columns: 1fr; } }
+    .risk-row .t { font-weight: 700; }
+    .risk-row .m { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
+    .run-bar { display: flex; justify-content: center; margin-top: 16px; }
+    .cmp { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .cmp .lbl { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .cmp .lbl span { color: var(--muted); font-weight: 600; }
+    .bar { display: flex; height: 22px; border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+    .bar i { display: block; height: 100%; transition: width .6s; }
+    .bar .base { background: color-mix(in srgb, var(--accent) 35%, var(--surface-2)); }
+    .bar .cost { background: var(--good); }
+    .bar .hit { background: var(--bad); }
+    .legend-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+    .legend-row i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    .log { display: flex; flex-direction: column; gap: 8px; }
+    .ev { display: flex; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; animation: pop .35s ease both; }
+    .ev .w { flex: none; width: 40px; font-size: 11px; font-weight: 800; color: var(--accent); padding-top: 2px; }
+    .ev.fire { background: var(--bad-soft); }
+    .ev.save { background: var(--good-soft); }
+    .ev.ghost { background: transparent; border: 1.5px dashed var(--line); color: var(--muted); animation: none; }
+    @keyframes pop { from { opacity: 0; transform: translateY(6px); } }
+    .moral { text-align: center; font-weight: 800; font-size: 18px; margin-top: 18px; min-height: 28px; }
+
+    /* ---------- Learn: statement builder ---------- */
+    .builder label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin: 12px 0 6px; }
+    .builder label:first-child { margin-top: 0; }
+    .builder select { width: 100%; min-height: 44px; font: inherit; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); }
+    .stmt { background: linear-gradient(135deg, var(--accent-soft), var(--surface)); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; font-size: 19px; line-height: 1.9; }
+    .stmt mark { padding: 2px 8px; border-radius: 6px; color: #fff; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+    .stmt .c { background: #7a6ff0; } .stmt .r { background: var(--amber); } .stmt .f { background: var(--bad); }
+    .stmt .vs { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); font-size: 14px; line-height: 1.6; color: var(--muted); }
+    .stmt .vs s { color: var(--bad); }
+    .cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    @media (max-width: 700px) { .cats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .cat { padding: 14px; }
+    .cat .e { font-size: 24px; }
+    .cat b { display: block; margin: 4px 0 2px; }
+    .cat span { font-size: 13px; color: var(--muted); }
+
+    /* ---------- Learn: heatmap ---------- */
+    .hm-wrap { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 700px) { .hm-wrap { grid-template-columns: 1fr; } }
+    .hm { display: grid; grid-template-columns: 28px repeat(5, minmax(44px, 1fr)); gap: 4px; }
+    .hm .ax { font-size: 12px; font-weight: 700; color: var(--muted); display: grid; place-items: center; }
+    .cell { min-height: 54px; border-radius: 8px; border: 2px solid transparent; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 3px; padding: 3px; cursor: pointer; font: inherit; color: var(--text); position: relative; }
+    .cell .sc { position: absolute; top: 2px; right: 5px; font-size: 10px; font-weight: 700; opacity: .55; }
+    .z-low { background: var(--good-soft); } .z-med { background: var(--amber-soft); }
+    .z-high { background: var(--bad-soft); } .z-crit { background: color-mix(in srgb, var(--bad) 45%, var(--surface)); }
+    .cell:not(.act) { opacity: .45; }
+    .tok { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
+    .hm-axis { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--muted); margin: 8px 0 0 32px; }
+    .chips-col { display: flex; flex-direction: column; gap: 8px; }
+    .rchip { display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; font-size: 14px; min-height: 48px; padding: 6px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+    .rchip.sel { border-color: var(--accent); background: var(--accent-soft); }
+    .rchip .score { margin-left: auto; font-weight: 800; font-size: 13px; padding: 2px 8px; border-radius: 999px; }
+    .thr { margin-top: 16px; }
+    .thr input { width: 100%; min-height: 44px; accent-color: var(--accent); }
+    .thr .lbl { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
+    .zones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; }
+    .zones span { padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+
+    /* ---------- Respond ---------- */
+    .resp-head { display: flex; justify-content: center; margin-bottom: 18px; }
+    .resps { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .resp { padding: 16px; flex: 0 1 calc((100% - 48px) / 5); }
+    @media (max-width: 900px) { .resp { flex-basis: calc((100% - 24px) / 3); } }
+    @media (max-width: 560px) { .resp { flex-basis: calc((100% - 12px) / 2); } }
+    .resp .e { font-size: 26px; }
+    .resp b { display: block; margin: 6px 0 4px; font-size: 16px; }
+    .resp .d { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .resp .x { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+    .terms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 28px; }
+    @media (max-width: 900px) { .terms { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .term b { display: block; margin-bottom: 4px; }
+    .term p { margin: 0; font-size: 13px; color: var(--muted); }
+    .term .ex { margin-top: 8px; font-size: 13px; color: var(--text); }
+
+    .emv-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 96px; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+    .emv-row:first-child { border-top: 0; }
+    .emv-row .n { font-weight: 700; font-size: 14px; }
+    .emv-row .n small { display: block; font-weight: 600; color: var(--muted); }
+    .emv-row input { width: 100%; min-height: 44px; accent-color: var(--accent); }
+    .emv-row .emv-p { font-size: 12px; color: var(--muted); text-align: center; }
+    .emv-row .val { text-align: right; font-weight: 800; white-space: nowrap; }
+    .emv-two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 960px) { .emv-two { grid-template-columns: 1fr; } }
+    .neg { color: var(--bad); } .pos { color: var(--good); }
+    .emv-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; white-space: nowrap; margin-top: 8px; padding: 14px 16px; border-radius: 12px; background: var(--accent-soft); font-weight: 800; }
+    .reserves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .reserve { padding: 14px; border-radius: 12px; background: var(--surface-2); }
+    .reserve b { display: block; margin-bottom: 4px; }
+    .reserve p { margin: 0; font-size: 13px; color: var(--muted); }
+    .budget-stack { display: flex; flex-direction: column-reverse; gap: 4px; margin-top: 14px; }
+    .budget-stack div { padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; }
+    .bs-1 { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
+    .bs-2 { background: var(--good-soft); }
+    .bs-3 { background: var(--amber-soft); }
+    .budget-stack span { font-weight: 600; color: var(--muted); }
+
+    /* ---------- RAID + pre-mortem ---------- */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+    .tabs .btn { min-height: 44px; }
+    .tabs .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .raid-def { text-align: center; color: var(--muted); margin-bottom: 14px; }
+    .raid-list { display: flex; flex-direction: column; gap: 10px; }
+    .raid-item { display: grid; grid-template-columns: 56px minmax(0, 1fr) minmax(0, 180px); gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); }
+    @media (max-width: 600px) { .raid-item { grid-template-columns: 48px minmax(0, 1fr); } .raid-item .own { grid-column: 2; } }
+    .raid-item .id { font-weight: 800; color: var(--accent); }
+    .raid-item .own { font-size: 13px; color: var(--muted); }
+    .raid-item .own b { color: var(--text); }
+    .pm-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 760px) { .pm-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .pm-step { font: inherit; text-align: center; cursor: pointer; padding: 14px 10px; border-radius: 14px; border: 2px solid transparent; background: var(--surface-2); color: var(--text); min-height: 96px; }
+    .pm-step.active { border-color: var(--accent); }
+    .pm-step .n { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; display: grid; place-items: center; margin: 0 auto 6px; }
+    .pm-step b { font-size: 14px; }
+    .pm-detail { margin-top: 14px; text-align: center; min-height: 48px; }
+    .src { text-align: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+    /* ---------- Try: quizzes ---------- */
+    .quiz-card { text-align: center; max-width: 700px; margin: 0 auto; }
+    .quiz-q { font-size: 21px; font-weight: 700; min-height: 84px; display: grid; place-items: center; margin: 12px 0 18px; }
+    .quiz-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .quiz-btns .btn { min-width: 0; min-height: 48px; padding: 10px 16px; }
+    .quiz-fb { min-height: 52px; margin-top: 16px; font-weight: 600; }
+    .quiz-fb.good { color: var(--good); }
+    .quiz-fb.bad { color: var(--bad); }
+    .dots { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+    .dots i.good { background: var(--good); }
+    .dots i.bad { background: var(--bad); }
+    .kind { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 06 Risk</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 06 · Risk</div>
+      <h1>Expect the unexpected.</h1>
+      <p>Spot what could go wrong, or right, before it happens.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#learn">💡 Learn</a>
+        <a href="#respond">🛡️ Respond</a>
+        <a href="#raid">📋 RAID</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Risk today, issue tomorrow</h2>
+      <p class="sub">A 60-day checkout project. Decide what to do with each risk, then run it.</p>
+
+      <div class="def-row">
+        <div class="card def"><span class="e">🎲</span><div><b>Risk</b><span>Uncertain. Might happen in the future.</span></div></div>
+        <div class="card def"><span class="e">🔥</span><div><b>Issue</b><span>Certain. It is happening now.</span></div></div>
+      </div>
+
+      <div class="risk-grid" id="risk-rows"></div>
+      <div class="card">
+        <div class="tl-grid">
+        <div>
+          <div class="h4">Timeline impact</div>
+          <div class="legend-row">
+            <span><i class="base" style="background:color-mix(in srgb,var(--accent) 35%,var(--surface-2))"></i>Plan (60 d)</span>
+            <span><i style="background:var(--good)"></i>Mitigation effort</span>
+            <span><i style="background:var(--bad)"></i>Issue delays</span>
+          </div>
+          <div class="cmp" id="cmp"></div>
+        </div>
+        <div>
+          <div class="h4">What happened</div>
+          <div class="log" id="log"></div>
+        </div>
+        </div>
+      </div>
+      <div class="run-bar"><button class="btn primary" id="run">▶ Run the project</button></div>
+      <div class="moral" id="moral"></div>
+    </section>
+
+    <!-- ================= LEARN ================= -->
+    <section class="section" id="learn">
+      <span class="step-label">💡 Learn</span>
+      <h2>Name it, then size it</h2>
+      <p class="sub">A vague risk can't be managed. Write it as cause → event → effect.</p>
+
+      <div class="two" style="align-items:stretch">
+        <div class="card builder" id="builder"></div>
+        <div class="stmt" id="stmt"></div>
+      </div>
+
+      <div class="cats" id="cats"></div>
+
+      <h2 style="margin-top:44px">Probability × impact</h2>
+      <p class="sub">Tap a risk, then tap a cell. Score = probability × impact (1–25).</p>
+      <div class="hm-wrap">
+        <div class="card">
+          <div class="hm" id="hm"></div>
+          <div class="hm-axis"><span>Impact →</span><span>1 · Minor</span><span>5 · Severe</span></div>
+          <div class="thr">
+            <div class="lbl"><span>Risk threshold: act on scores ≥ <b id="thr-v">10</b></span><span class="pill">Appetite</span></div>
+            <input type="range" id="thr" min="2" max="20" value="10" aria-label="Risk threshold">
+          </div>
+          <div class="zones">
+            <span class="z-low">1–4 Low</span><span class="z-med">5–9 Medium</span><span class="z-high">10–16 High</span><span class="z-crit">20–25 Critical</span>
+          </div>
+        </div>
+        <div>
+          <div class="chips-col" id="rchips"></div>
+          <ul class="bullets" style="margin-top:14px;font-size:14px">
+            <li>Example scale. Each organization defines its own.</li>
+            <li>Above the threshold: plan a response now.</li>
+            <li>Below it: watch it on the log.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RESPOND ================= -->
+    <section class="section" id="respond">
+      <span class="step-label">🛡️ Respond</span>
+      <h2>Five ways to respond</h2>
+      <p class="sub">Risk isn't only bad news. PMBOK 7 manages threats and opportunities.</p>
+      <div class="resp-head"><div class="seg" id="resp-seg">
+        <button class="on" data-kind="threat">⚠️ Threats</button>
+        <button data-kind="opp">✨ Opportunities</button>
+      </div></div>
+      <div class="resps" id="resps"></div>
+
+      <div class="terms" id="terms"></div>
+
+      <h2 style="margin-top:44px">How much buffer?</h2>
+      <p class="sub">Expected Monetary Value: EMV = probability × impact. Drag the probabilities.</p>
+      <div class="emv-two">
+        <div class="card">
+          <div id="emv"></div>
+          <div class="emv-total"><span>Total EMV → suggested contingency</span><span id="emv-total"></span></div>
+          <p class="src">Illustrative numbers. Threats are negative, opportunities positive.</p>
+        </div>
+        <div class="card">
+          <div class="h4">Where the reserve lives</div>
+          <div class="reserves">
+            <div class="reserve"><b>🧯 Contingency reserve</b><p>For identified risks (known-unknowns). Part of the cost baseline. Usually the project team manages it.</p></div>
+            <div class="reserve"><b>🏦 Management reserve</b><p>For unidentified risks (unknown-unknowns). Outside the baseline. Management approves its use.</p></div>
+          </div>
+          <div class="budget-stack" id="budget"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RAID ================= -->
+    <section class="section" id="raid">
+      <span class="step-label">📋 RAID</span>
+      <h2>The RAID log</h2>
+      <p class="sub">One living list for everything that can derail delivery.</p>
+      <div class="tabs" id="raid-tabs"></div>
+      <div class="card">
+        <div class="raid-def" id="raid-def"></div>
+        <div class="raid-list" id="raid-list"></div>
+      </div>
+
+      <h2 style="margin-top:44px">Run a pre-mortem</h2>
+      <p class="sub">Imagine the project already failed. Then ask why. Tap each step.</p>
+      <div class="card">
+        <div class="pm-steps" id="pm-steps"></div>
+        <div class="pm-detail" id="pm-detail"></div>
+        <p class="src">Technique by Gary Klein, “Performing a Project Premortem”, Harvard Business Review (2007).</p>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>R, A, I or D?</h2>
+      <p class="sub">8 log entries. Where does each one belong?</p>
+      <div class="card quiz-card" id="raid-quiz"></div>
+
+      <h2 style="margin-top:44px">Pick the response</h2>
+      <p class="sub">6 situations. Choose the best strategy.</p>
+      <div class="card quiz-card" id="resp-quiz"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When the team says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>A <b>risk</b> is uncertain and in the future. An <b>issue</b> is happening now.</li>
+          <li>Every risk needs an <b>owner</b>, a <b>response</b> and a <b>trigger</b>.</li>
+          <li>Manage <b>opportunities</b> too. Risk isn't only bad news.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const $ = (id) => document.getElementById(id);
+    const list = (a) => `<ul class="bullets">${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+
+    /* ---------- Explore ---------- */
+    const RISKS = [
+      { t: "Payment vendor changes its API", cat: "Vendor", wk: 3, fires: true, ignore: 10, cost: 2, left: 2,
+        mit: "Read the contract, test in the sandbox early",
+        hitTxt: "Vendor deprecated the old API. Rework under pressure.", saveTxt: "Sandbox test caught the change early." },
+      { t: "Lead backend dev on leave before release", cat: "Resource", wk: 5, fires: true, ignore: 8, cost: 1, left: 1,
+        mit: "Pair a second dev on the payment code",
+        hitTxt: "Nobody else knew the code. Work stalled.", saveTxt: "The paired dev carried on." },
+      { t: "Data migration bigger than estimated", cat: "Technical", wk: 7, fires: true, ignore: 12, cost: 3, left: 3,
+        mit: "Do a dry run on a copy of production data",
+        hitTxt: "Migration failed on launch weekend.", saveTxt: "Dry run sized it. Scripts were ready." },
+      { t: "App store rejects the release", cat: "External", wk: 8, fires: false, ignore: 0, cost: 1, left: 0,
+        mit: "Check the review guidelines before submitting",
+        hitTxt: "Approved first time. Lucky.", saveTxt: "Approved first time. The check was insurance." },
+    ];
+    const BASE = 60, SCALE = 95;
+    const choice = RISKS.map(() => "ignore");
+    let ran = false;
+
+    const daysFor = (ch) => RISKS.reduce((acc, r, i) => {
+      if (ch[i] === "mitigate") { acc.cost += r.cost; if (r.fires) acc.hit += r.left; }
+      else if (r.fires) acc.hit += r.ignore;
+      return acc;
+    }, { cost: 0, hit: 0 });
+
+    function barRow(label, d) {
+      const total = BASE + d.cost + d.hit;
+      const pct = (n) => (n / SCALE * 100).toFixed(2) + "%";
+      return `<div><div class="lbl">${label}<span>${total} days${total > BASE ? ` · +${total - BASE}` : ""}</span></div>
+        <div class="bar"><i class="base" style="width:${pct(BASE)}"></i><i class="cost" style="width:${pct(d.cost)}"></i><i class="hit" style="width:${pct(d.hit)}"></i></div></div>`;
+    }
+
+    function renderExplore() {
+      $("risk-rows").innerHTML = RISKS.map((r, i) => `
+        <div class="card risk-row">
+          <div class="t">${r.t} <span class="pill">${r.cat}</span></div>
+          <div class="m">Mitigation: ${r.mit} (${r.cost} d)</div>
+          <div class="seg" data-r="${i}">
+            <button class="${choice[i] === "ignore" ? "on ign" : ""}" data-c="ignore">🙈 Ignore</button>
+            <button class="${choice[i] === "mitigate" ? "on mit" : ""}" data-c="mitigate">🛡️ Mitigate</button>
+          </div>
+        </div>`).join("");
+
+      const yours = daysFor(choice);
+      $("cmp").innerHTML = ran
+        ? barRow("Your plan", yours) + barRow("Ignore everything", daysFor(RISKS.map(() => "ignore"))) + barRow("Mitigate everything", daysFor(RISKS.map(() => "mitigate")))
+        : barRow("Your plan", { cost: yours.cost, hit: 0 });
+
+      $("log").innerHTML = RISKS.map((r, i) => {
+        if (!ran) return `<div class="ev ghost"><span class="w">WK ${r.wk}</span><span>…</span></div>`;
+        const mit = choice[i] === "mitigate";
+        if (!r.fires) return `<div class="ev"><span class="w">WK ${r.wk}</span><span>🍀 ${mit ? r.saveTxt : r.hitTxt}</span></div>`;
+        return mit
+          ? `<div class="ev save"><span class="w">WK ${r.wk}</span><span>✅ ${r.saveTxt} +${r.left} d</span></div>`
+          : `<div class="ev fire"><span class="w">WK ${r.wk}</span><span>🔥 Risk became an issue. ${r.hitTxt} +${r.ignore} d</span></div>`;
+      }).join("");
+
+      const fired = RISKS.filter((r, i) => r.fires && choice[i] === "ignore").length;
+      $("moral").textContent = ran
+        ? (fired ? `💬 ${fired} ignored risk${fired > 1 ? "s" : ""} turned into issue${fired > 1 ? "s" : ""}. Mitigation is cheaper than firefighting.` : "💬 No surprises. Small effort up front beat big delays later.")
+        : "";
+      $("run").textContent = ran ? "↺ Change the plan" : "▶ Run the project";
+    }
+    $("explore").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-c]");
+      if (b) { choice[+b.closest("[data-r]").dataset.r] = b.dataset.c; ran = false; renderExplore(); }
+    });
+    $("run").onclick = () => { ran = !ran; renderExplore(); };
+    renderExplore();
+
+    /* ---------- Learn: statement builder ---------- */
+    const PARTS = {
+      cause: ["the payment vendor is releasing API v3", "only one engineer knows the billing code", "we have never migrated this much data"],
+      event: ["our integration breaks before launch", "that engineer is unavailable during release", "the migration takes longer than the cutover window"],
+      effect: ["delay checkout by about two weeks", "stall billing fixes for days", "extend downtime for customers"],
+    };
+    const LABEL = { cause: "Because… (cause, a fact today)", event: "there is a risk that… (uncertain event)", effect: "which would… (effect on objectives)" };
+    const pick = { cause: 0, event: 0, effect: 0 };
+    $("builder").innerHTML = Object.keys(PARTS).map((k) => `
+      <label for="b-${k}">${LABEL[k]}</label>
+      <select id="b-${k}" data-k="${k}">${PARTS[k].map((v, i) => `<option value="${i}">${v}</option>`).join("")}</select>`).join("");
+    function renderStmt() {
+      $("stmt").innerHTML = `Because <mark class="c">${PARTS.cause[pick.cause]}</mark>, there is a risk that <mark class="r">${PARTS.event[pick.event]}</mark>, which would <mark class="f">${PARTS.effect[pick.effect]}</mark>.
+        <div class="vs">❌ <s>"The vendor API is a risk."</s><br>✅ Cause, event and effect make it <b>specific</b>, so you can pick a response and an owner.</div>`;
+    }
+    $("builder").onchange = (e) => { pick[e.target.dataset.k] = +e.target.value; renderStmt(); };
+    renderStmt();
+
+    const CATS = [
+      ["🧪", "Technical", "New tech, integrations, performance"],
+      ["📅", "Schedule", "Optimistic estimates, late dependencies"],
+      ["👤", "Resource", "Key people, skills, availability"],
+      ["🏢", "Vendor", "Third-party APIs, contracts, SLAs"],
+      ["🌍", "External", "Regulation, market, app store rules"],
+      ["🔐", "Security & compliance", "Data protection, audits, breaches"],
+    ];
+    $("cats").innerHTML = CATS.map(([e, b, s]) => `<div class="card cat"><div class="e">${e}</div><b>${b}</b><span>${s}</span></div>`).join("");
+
+    /* ---------- Learn: heatmap ---------- */
+    const HRISKS = [
+      { n: 1, t: "Vendor API change", p: 3, i: 4 },
+      { n: 2, t: "Key engineer unavailable", p: 2, i: 4 },
+      { n: 3, t: "Migration overruns", p: 4, i: 3 },
+      { n: 4, t: "App store rejection", p: 2, i: 2 },
+      { n: 5, t: "New privacy rule", p: 1, i: 5 },
+      { n: 6, t: "Load spike on launch", p: 3, i: 5 },
+    ].map((r) => ({ ...r, placed: null }));
+    let selRisk = 0, thr = 10;
+    const zone = (s) => (s >= 20 ? "z-crit" : s >= 10 ? "z-high" : s >= 5 ? "z-med" : "z-low");
+    function renderHm() {
+      let html = "";
+      for (let p = 5; p >= 1; p--) {
+        html += `<div class="ax">${p}</div>`;
+        for (let i = 1; i <= 5; i++) {
+          const s = p * i;
+          const toks = HRISKS.filter((r) => r.placed && r.placed.p === p && r.placed.i === i).map((r) => `<span class="tok">${r.n}</span>`).join("");
+          html += `<button class="cell ${zone(s)} ${s >= thr ? "act" : ""}" data-p="${p}" data-i="${i}" aria-label="Probability ${p}, impact ${i}, score ${s}"><span class="sc">${s}</span>${toks}</button>`;
+        }
+      }
+      $("hm").innerHTML = html;
+      $("rchips").innerHTML = HRISKS.map((r, k) => {
+        const s = r.placed ? r.placed.p * r.placed.i : null;
+        return `<button class="rchip ${selRisk === k ? "sel" : ""}" data-k="${k}"><span class="tok">${r.n}</span>${r.t}
+          <span class="score ${s ? zone(s) : ""}">${s ? `${s}${s >= thr ? " · act" : " · watch"}` : "tap to place"}</span></button>`;
+      }).join("");
+      $("thr-v").textContent = thr;
+    }
+    $("hm").onclick = (e) => {
+      const c = e.target.closest(".cell");
+      if (!c || selRisk === null) return;
+      HRISKS[selRisk].placed = { p: +c.dataset.p, i: +c.dataset.i };
+      const next = HRISKS.findIndex((r) => !r.placed);
+      selRisk = next === -1 ? null : next;
+      renderHm();
+    };
+    $("rchips").onclick = (e) => {
+      const b = e.target.closest(".rchip");
+      if (b) { selRisk = +b.dataset.k; renderHm(); }
+    };
+    $("thr").oninput = (e) => { thr = +e.target.value; renderHm(); };
+    renderHm();
+
+    /* ---------- Respond ---------- */
+    const RESP = {
+      threat: [
+        ["🚫", "Avoid", "Change the plan so the threat can't happen.", "Drop the experimental framework for a proven one."],
+        ["🛡️", "Mitigate", "Lower the probability or the impact.", "Load test before launch. Add autoscaling."],
+        ["🤝", "Transfer", "Shift ownership to a third party.", "Use a certified payment provider instead of storing cards."],
+        ["🙆", "Accept", "Acknowledge it. Act only if it happens.", "Minor UI glitch on an old browser. Keep a fallback plan."],
+        ["⬆️", "Escalate", "It's outside the project's authority.", "A company-wide security policy change goes to leadership."],
+      ],
+      opp: [
+        ["🎯", "Exploit", "Make sure the opportunity happens.", "Put the best engineer on the reusable auth module."],
+        ["📈", "Enhance", "Raise its probability or impact.", "Start the CI upgrade early so builds get faster sooner."],
+        ["🤝", "Share", "Partner with someone who can capture it.", "Co-launch with a partner to reach their users."],
+        ["🙆", "Accept", "Welcome it if it comes. No active effort.", "If the vendor ships early, adopt it then."],
+        ["⬆️", "Escalate", "Bigger than the project. Pass it up.", "A feature other products could reuse goes to the portfolio."],
+      ],
+    };
+    let kind = "threat";
+    function renderResp() {
+      $("resp-seg").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.kind === kind));
+      $("resps").innerHTML = RESP[kind].map(([e, b, d, x]) => `<div class="card resp"><div class="e">${e}</div><b>${b}</b><div class="d">${d}</div><div class="x">💡 ${x}</div></div>`).join("");
+    }
+    $("resp-seg").onclick = (e) => { const b = e.target.closest("[data-kind]"); if (b) { kind = b.dataset.kind; renderResp(); } };
+    renderResp();
+
+    const TERMS = [
+      ["👤 Risk owner", "One named person who watches the risk and runs the response.", "Owner: Priya, payments lead."],
+      ["🚨 Trigger", "An early warning sign that the risk is about to happen.", "Vendor posts a deprecation notice."],
+      ["🌗 Residual risk", "What's left after the response.", "Load tested, but a 10× spike could still hurt."],
+      ["🔁 Secondary risk", "A new risk created by the response itself.", "New payment provider adds a new vendor dependency."],
+    ];
+    $("terms").innerHTML = TERMS.map(([b, p, ex]) => `<div class="card term"><b>${b}</b><p>${p}</p><div class="ex">e.g. ${ex}</div></div>`).join("");
+
+    /* ---------- EMV ---------- */
+    const EMV = [
+      { n: "Vendor API change", k: "threat", p: 30, imp: -20000 },
+      { n: "Migration overrun", k: "threat", p: 50, imp: -15000 },
+      { n: "Key engineer leaves", k: "threat", p: 10, imp: -40000 },
+      { n: "Reuse the auth module", k: "opportunity", p: 40, imp: 10000 },
+    ];
+    const BUDGET = 200000;
+    const money = (v) => (v < 0 ? "−" : v > 0 ? "+" : "") + "$" + Math.abs(Math.round(v)).toLocaleString("en-US");
+    function renderEmv() {
+      $("emv").innerHTML = EMV.map((r, i) => {
+        const v = r.p / 100 * r.imp;
+        return `<div class="emv-row">
+          <div class="n">${r.n}<small>${r.k} · impact ${money(r.imp)}</small></div>
+          <div><input type="range" min="0" max="100" step="5" value="${r.p}" data-e="${i}" aria-label="${r.n} probability"><div class="emv-p">${r.p}% likely</div></div>
+          <div class="val ${v < 0 ? "neg" : "pos"}">${money(v)}</div></div>`;
+      }).join("");
+      const total = EMV.reduce((s, r) => s + r.p / 100 * r.imp, 0);
+      $("emv-total").innerHTML = `<span class="${total < 0 ? "neg" : "pos"}">${money(total)}</span>`;
+      const cont = Math.max(0, -total);
+      $("budget").innerHTML = `
+        <div class="bs-1">Planned work (cost estimates)<span>$${BUDGET.toLocaleString("en-US")}</span></div>
+        <div class="bs-2">+ Contingency reserve (from EMV)<span>$${Math.round(cont).toLocaleString("en-US")}</span></div>
+        <div class="bs-3">+ Management reserve (set by policy)<span>outside the baseline</span></div>`;
+    }
+    $("emv").oninput = (e) => {
+      const i = e.target.dataset.e;
+      if (i === undefined) return;
+      EMV[+i].p = +e.target.value;
+      const row = e.target.closest(".emv-row");
+      const v = EMV[+i].p / 100 * EMV[+i].imp;
+      row.querySelector(".emv-p").textContent = `${EMV[+i].p}% likely`;
+      row.querySelector(".val").textContent = money(v);
+      const total = EMV.reduce((s, r) => s + r.p / 100 * r.imp, 0);
+      $("emv-total").innerHTML = `<span class="${total < 0 ? "neg" : "pos"}">${money(total)}</span>`;
+      $("budget").querySelector(".bs-2 span").textContent = "$" + Math.round(Math.max(0, -total)).toLocaleString("en-US");
+    };
+    renderEmv();
+
+    /* ---------- RAID ---------- */
+    const RAID = {
+      R: { name: "⚠️ Risks", def: "Things that might happen. Track probability, impact, owner and response.", items: [
+        ["R-01", "Vendor may deprecate API v2 before launch", "Priya", "Mitigate: sandbox test by week 3"],
+        ["R-02", "Launch traffic may exceed database capacity", "Omar", "Mitigate: load test at 5× peak"],
+        ["R-03", "Partner co-marketing could double sign-ups", "Lena", "Opportunity: share"] ] },
+      A: { name: "🤔 Assumptions", def: "Things believed true but not yet proven. Validate them, or they become risks.", items: [
+        ["A-01", "Client provides anonymized test data by week 2", "Client PM", "Confirm in Friday sync"],
+        ["A-02", "Existing users already have verified emails", "Data team", "Check with a query"],
+        ["A-03", "Design system covers all checkout components", "Design lead", "Audit in sprint 1"] ] },
+      I: { name: "🔥 Issues", def: "Problems happening now. Track impact, owner and the fix.", items: [
+        ["I-01", "Staging environment down since Monday", "DevOps", "Fix ETA Wednesday"],
+        ["I-02", "Two QA engineers left the team", "Eng manager", "Backfill + contractor"],
+        ["I-03", "Payment sandbox returns random 500s", "Vendor", "Ticket escalated"] ] },
+      D: { name: "🔗 Dependencies", def: "Work this project needs from others, or others need from it.", items: [
+        ["D-01", "Auth team ships SDK 2.0 before our sprint 4", "Auth team", "On track"],
+        ["D-02", "Legal approves new terms before launch", "Legal", "Review booked"],
+        ["D-03", "Mobile team needs our API by June 10", "Us → Mobile", "At risk"] ] },
+    };
+    let raidTab = "R";
+    function renderRaid() {
+      $("raid-tabs").innerHTML = Object.keys(RAID).map((k) => `<button class="btn ${k === raidTab ? "active" : ""}" data-t="${k}">${RAID[k].name}</button>`).join("");
+      $("raid-def").textContent = RAID[raidTab].def;
+      $("raid-list").innerHTML = RAID[raidTab].items.map(([id, t, o, s]) =>
+        `<div class="raid-item"><span class="id">${id}</span><span>${t}</span><span class="own"><b>${o}</b> · ${s}</span></div>`).join("");
+    }
+    $("raid-tabs").onclick = (e) => { const b = e.target.closest("[data-t]"); if (b) { raidTab = b.dataset.t; renderRaid(); } };
+    renderRaid();
+
+    const PM = [
+      ["Brief", "Share the plan with the whole team: goals, scope, timeline."],
+      ["It failed", "Announce: “It's six months from now. The project failed badly.”"],
+      ["Write", "Everyone silently writes every reason they can think of, for a few minutes."],
+      ["Share", "Go round the room, one reason each, until the list is complete."],
+      ["Act", "Turn the strongest reasons into risks with owners and responses."],
+    ];
+    let pmStep = 0;
+    function renderPm() {
+      $("pm-steps").innerHTML = PM.map(([b], i) => `<button class="pm-step ${i === pmStep ? "active" : ""}" data-s="${i}"><span class="n">${i + 1}</span><b>${b}</b></button>`).join("");
+      $("pm-detail").innerHTML = `${PM[pmStep][1]}${pmStep === 2 ? "<br><span class=\"pill\">Why it works: imagining certain failure makes people bolder about naming problems.</span>" : ""}`;
+    }
+    $("pm-steps").onclick = (e) => { const b = e.target.closest("[data-s]"); if (b) { pmStep = +b.dataset.s; renderPm(); } };
+    renderPm();
+
+    /* ---------- Try: generic one-at-a-time quiz ---------- */
+    function quiz(el, items, options, header) {
+      let qi = 0, res = [], fb = null;
+      function render() {
+        const dots = items.map((_, i) => `<i class="${res[i] === true ? "good" : res[i] === false ? "bad" : ""}"></i>`).join("");
+        if (qi >= items.length) {
+          const score = res.filter(Boolean).length;
+          el.innerHTML = `<div class="dots">${dots}</div>
+            <div class="quiz-q">${score === items.length ? "🏆" : score >= items.length - 2 ? "👍" : "🌱"} ${score} / ${items.length}</div>
+            <div class="quiz-fb ${fb ? fb.cls : ""}">${fb ? fb.text : ""}</div>
+            <button class="btn primary" data-retry>Try again</button>`;
+          return;
+        }
+        const it = items[qi];
+        el.innerHTML = `<div class="dots">${dots}</div>
+          ${header ? `<div class="kind" style="margin-top:12px;color:${it.k === "opp" ? "var(--good)" : "var(--bad)"}">${it.k === "opp" ? "✨ Opportunity" : "⚠️ Threat"}</div>` : ""}
+          <div class="quiz-q">${it.q}</div>
+          <div class="quiz-btns">${(typeof options === "function" ? options(it) : options).map(([v, l]) => `<button class="btn" data-a="${v}">${l}</button>`).join("")}</div>
+          <div class="quiz-fb ${fb ? fb.cls : ""}">${fb ? fb.text : ""}</div>`;
+      }
+      el.onclick = (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        if (b.hasAttribute("data-retry")) { qi = 0; res = []; fb = null; return render(); }
+        if (!b.dataset.a || qi >= items.length) return;
+        const it = items[qi], ok = b.dataset.a === it.a;
+        res[qi] = ok; qi++;
+        fb = { cls: ok ? "good" : "bad", text: `${ok ? "✓ Correct." : `✗ It's ${it.label}.`} ${it.why}` };
+        render();
+      };
+      render();
+    }
+
+    const RAIDQ = [
+      { q: "“The staging server has been down since Monday.”", a: "I", label: "an Issue", why: "It's already happening." },
+      { q: "“We assume the client sends test data by week 2.”", a: "A", label: "an Assumption", why: "Believed true, not yet confirmed." },
+      { q: "“The vendor might raise API prices next quarter.”", a: "R", label: "a Risk", why: "Uncertain and in the future." },
+      { q: "“Mobile release needs the auth team's new SDK.”", a: "D", label: "a Dependency", why: "We rely on another team's work." },
+      { q: "“Two QA engineers resigned last week.”", a: "I", label: "an Issue", why: "It happened. Now it needs a fix." },
+      { q: "“A new privacy law may require consent changes.”", a: "R", label: "a Risk", why: "Might happen. Plan a response." },
+      { q: "“Design must sign off before sprint 3 starts.”", a: "D", label: "a Dependency", why: "Our work waits on another group." },
+      { q: "“We assume users already have accounts.”", a: "A", label: "an Assumption", why: "Validate it early, or it becomes a risk." },
+    ];
+    quiz($("raid-quiz"), RAIDQ, [["R", "⚠️ Risk"], ["A", "🤔 Assumption"], ["I", "🔥 Issue"], ["D", "🔗 Dependency"]]);
+
+    const THREAT_OPTS = [["avoid", "🚫 Avoid"], ["mitigate", "🛡️ Mitigate"], ["transfer", "🤝 Transfer"], ["accept", "🙆 Accept"]];
+    const OPP_OPTS = [["exploit", "🎯 Exploit"], ["enhance", "📈 Enhance"], ["share", "🤝 Share"], ["accept", "🙆 Accept"]];
+    const RESPQ = [
+      { k: "threat", q: "Storing raw card numbers risks a security breach. A certified payment provider can handle cards for us.", a: "transfer", label: "Transfer", why: "A third party takes on the risk (and you pay for it)." },
+      { k: "threat", q: "The feature relies on an experimental framework nobody knows. A stable alternative exists.", a: "avoid", label: "Avoid", why: "Change the plan so the threat disappears." },
+      { k: "threat", q: "Launch-day traffic might overload the database.", a: "mitigate", label: "Mitigate", why: "Load testing and autoscaling cut probability and impact." },
+      { k: "threat", q: "The office coffee machine might break during the project.", a: "accept", label: "Accept", why: "Low impact. Not worth any effort up front." },
+      { k: "opp", q: "A partner offers to co-market the launch to their users.", a: "share", label: "Share", why: "You partner with someone better placed to capture it." },
+      { k: "opp", q: "Reusing the auth module could save 3 weeks. You want to make sure it happens.", a: "exploit", label: "Exploit", why: "Exploit = make the opportunity certain." },
+    ];
+    quiz($("resp-quiz"), RESPQ, (it) => (it.k === "opp" ? OPP_OPTS : THREAT_OPTS), true);
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"Who's the risk owner?\"", "One named person who watches the risk and runs the response.", "Is it a person, not a team? Do they know they own it?"],
+      ["\"That's an issue now, not a risk.\"", "It has happened. It needs a fix, not a probability.", "What's the impact, who's fixing it, and by when?"],
+      ["\"Let's run a pre-mortem.\"", "Imagine the project failed, then list why.", "Who should be in the room? Who turns reasons into risks?"],
+      ["\"What's our contingency?\"", "Time or budget set aside for identified risks.", "How was it sized? Who can approve spending it?"],
+      ["\"We'll accept that risk.\"", "No action now. Deal with it if it happens.", "Was this a conscious decision? Is there a fallback plan?"],
+      ["\"Add it to the RAID log.\"", "Track it with risks, assumptions, issues and dependencies.", "Does it have an owner, a date, and a next step?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(6);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

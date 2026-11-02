@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Methodologies · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .seg .btn { min-height: 44px; }
+    .seg .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .note { font-size: 13px; color: var(--muted); text-align: center; margin-top: 12px; }
+    .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .tag.good { background: var(--good-soft); color: var(--good); }
+    .tag.bad { background: var(--bad-soft); color: var(--bad); }
+    .tag.mid { background: var(--accent-soft); color: var(--accent); }
+    h4.cap { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+
+    /* ---------- Explore: two approaches ---------- */
+    .brief { text-align: center; margin: 16px 0 20px; }
+    .brief span { display: inline-block; background: var(--surface-2); padding: 10px 16px; border-radius: 12px; font-weight: 700; }
+    .lanes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 700px) { .lanes { grid-template-columns: 1fr; } }
+    .lane h3 { margin: 0 0 2px; }
+    .lane .motto { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+    .tl { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
+    .tl .seg-bar { height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; overflow: hidden; white-space: nowrap; }
+    .tl .marks { height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 4px; font-size: 15px; line-height: 1.25; }
+    .weeks-axis { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; font-size: 10px; color: var(--muted); text-align: center; margin-top: 2px; }
+    .legend-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 14px 0 0; }
+    .stats { margin-top: 14px; display: grid; gap: 8px; }
+    .stat { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; font-size: 14px; }
+    .stat b { text-align: right; }
+    .fit { margin-top: 12px; padding: 12px; border-radius: 12px; font-size: 14px; }
+    .fit.good { background: var(--good-soft); }
+    .fit.mid { background: var(--accent-soft); }
+    .fit.bad { background: var(--bad-soft); }
+    .change-bar { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 20px; }
+    .moral { text-align: center; font-size: 19px; font-weight: 800; min-height: 28px; }
+
+    /* ---------- Learn: approaches ---------- */
+    .appr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 700px) { .appr { grid-template-columns: 1fr; } }
+    .appr .card h3 { margin: 0 0 4px; }
+    .appr .card .sub2 { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+    .flow { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin: 6px 0 12px; }
+    .flow span { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); }
+    .flow i { color: var(--muted); font-style: normal; }
+    .values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 700px) { .values { grid-template-columns: 1fr; } }
+    .value { cursor: pointer; text-align: left; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-height: 112px; transition: border-color .2s; }
+    .value:hover, .value.open { border-color: var(--accent); }
+    .value .over { display: block; font-weight: 800; }
+    .value .over .l { display: block; font-size: 17px; margin-bottom: 4px; color: var(--accent); }
+    .value .over .ov { color: var(--text); margin-right: 6px; }
+    .value .over .r { color: var(--muted); font-weight: 600; }
+    .value .more { display: none; font-size: 14px; margin-top: 10px; color: var(--muted); }
+    .value.open .more { display: block; }
+    .p2 { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .p2 span { font-size: 13px; padding: 8px 12px; border-radius: 999px; background: var(--surface-2); }
+
+    /* ---------- Frameworks ---------- */
+    .fw-body { margin-top: 16px; }
+    .trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 760px) { .trio { grid-template-columns: 1fr; } }
+    .trio .card { padding: 16px; }
+    .trio ul { margin: 0; padding-left: 18px; font-size: 14px; }
+    .trio li { margin: 4px 0; }
+    .pill-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill-list span { font-size: 13px; padding: 6px 10px; border-radius: 999px; background: var(--surface-2); }
+    .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .col { background: var(--surface-2); border-radius: 12px; padding: 10px; min-height: 190px; }
+    .col h5 { margin: 0 0 8px; font-size: 13px; display: flex; justify-content: space-between; }
+    .ticket { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; margin-bottom: 6px; }
+    .kb { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 760px) { .kb { grid-template-columns: 1fr; } }
+    .stepper2 { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 8px 0; }
+    .stepper2 .btn { min-width: 44px; min-height: 44px; padding: 0; }
+    .stepper2 b { min-width: 30px; text-align: center; font-size: 22px; }
+    .big { font-size: 34px; font-weight: 800; text-align: center; }
+    .formula { font-family: ui-monospace, Consolas, monospace; font-size: 13px; text-align: center; color: var(--muted); }
+    .wastes { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+    .waste { text-align: left; font: inherit; color: var(--text); cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-height: 64px; }
+    .waste.open { border-color: var(--accent); }
+    .waste .w-more { display: none; font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .waste.open .w-more { display: block; }
+    .hyb { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 700px) { .hyb { grid-template-columns: 1fr; } }
+
+    /* ---------- Choose: Stacey + Cynefin ---------- */
+    .choose { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+    .rec { display: flex; flex-direction: column; justify-content: center; }
+    @media (max-width: 900px) { .choose { grid-template-columns: 1fr; } }
+    .axis-lbl { font-size: 13px; font-weight: 700; color: var(--muted); margin: 14px 0 8px; text-align: center; }
+    .axis-lbl:first-child { margin-top: 0; }
+    .stacey { display: grid; grid-template-columns: 26px repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, 76px) 26px; gap: 4px; }
+    .st-cell { border-radius: 10px; display: grid; place-items: center; text-align: center; font-size: 12px; font-weight: 800; color: var(--text); opacity: .45; transition: opacity .2s, transform .2s, outline-color .2s; outline: 3px solid transparent; }
+    .st-cell.on { opacity: 1; outline-color: var(--text); }
+    .z-simple { background: var(--good-soft); }
+    .z-compl { background: var(--accent-soft); }
+    .z-complex { background: color-mix(in srgb, #c98a0b 22%, var(--surface)); }
+    .z-chaos { background: var(--bad-soft); }
+    .ax-y { grid-row: 1 / 4; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; color: var(--muted); text-align: center; }
+    .ax-x { grid-row: 4; grid-column: 2 / 5; font-size: 11px; color: var(--muted); text-align: center; align-self: center; }
+    .rec h3 { margin: 4px 0 6px; }
+    .cyn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .cyn-btn { text-align: left; font: inherit; color: var(--text); cursor: pointer; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface); min-height: 88px; }
+    .cyn-btn.on { border-color: var(--accent); background: var(--accent-soft); }
+    .cyn-btn b { display: block; }
+    .cyn-btn code { font-size: 12px; color: var(--muted); }
+    .cyn-panel { margin-top: 12px; min-height: 92px; }
+    .factors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 700px) { .factors { grid-template-columns: 1fr; } }
+
+    /* ---------- Try ---------- */
+    .quiz-card { max-width: 680px; margin: 0 auto; text-align: center; }
+    .dots { display: flex; gap: 6px; justify-content: center; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+    .dots i.good { background: var(--good); }
+    .dots i.bad { background: var(--bad); }
+    .q { font-size: 20px; font-weight: 700; min-height: 84px; display: grid; place-items: center; margin: 14px 0 18px; }
+    .opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    @media (max-width: 560px) { .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .opts .btn { min-height: 48px; }
+    .opts .btn.right { background: var(--good-soft); border-color: var(--good); }
+    .opts .btn.wrong { background: var(--bad-soft); border-color: var(--bad); }
+    .fb { min-height: 66px; margin-top: 14px; font-size: 15px; }
+    .fb.hint { color: var(--muted); }
+    .myths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 700px) { .myths { grid-template-columns: 1fr; } }
+    .myth .stmt { font-weight: 800; margin-bottom: 10px; min-height: 48px; }
+    .myth .mf { display: flex; gap: 8px; }
+    .myth .mf .btn { flex: 1; min-height: 44px; }
+    .myth .mf .btn.right { background: var(--good-soft); border-color: var(--good); }
+    .myth .mf .btn.wrong { background: var(--bad-soft); border-color: var(--bad); }
+    .myth .why { font-size: 14px; color: var(--muted); margin-top: 10px; min-height: 40px; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    #lens .flip, #lens .flip-inner { min-height: 230px; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 08 Methodologies</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 08 · Methodologies</div>
+      <h1>No best method.<br>Only the right fit.</h1>
+      <p>Predictive, agile and hybrid, and how to choose for the project in front of you.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#learn">💡 Learn</a>
+        <a href="#frameworks">🧰 Frameworks</a>
+        <a href="#choose">🧭 Choose</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Same 12 weeks, two approaches</h2>
+      <p class="sub">Pick a project, then request a late change and compare.</p>
+
+      <div class="seg" id="proj-tabs"></div>
+      <div class="brief"><span id="brief"></span></div>
+
+      <div class="lanes" id="lanes"></div>
+      <div class="legend-row"><span>💬 Real feedback</span><span>🚀 Value goes live</span><span>🚦 Approval gate</span></div>
+
+      <div class="change-bar">
+        <button class="btn primary" id="late-change">✋ Request a change in week 9</button>
+        <div class="moral" id="moral"></div>
+      </div>
+      <p class="note">Illustrative timelines, not benchmarks.</p>
+    </section>
+
+    <!-- ================= LEARN ================= -->
+    <section class="section" id="learn">
+      <span class="step-label">💡 Learn</span>
+      <h2>Two families of approaches</h2>
+      <p class="sub">PMBOK 7 calls them predictive and adaptive. Most real projects mix both.</p>
+
+      <div class="appr">
+        <div class="card">
+          <h3>📐 Predictive (waterfall)</h3>
+          <div class="sub2">Plan the whole thing up front, then execute in phases.</div>
+          <div class="flow"><span>Req</span><i>→</i><span>Design</span><i>→</i><span>Build</span><i>→</i><span>Test</span><i>→</i><span>Release</span></div>
+          <ul class="bullets">
+            <li>Phase gates: approve before moving on</li>
+            <li>Scope fixed early; change goes through change control</li>
+            <li>Fits: stable or regulated scope, hardware, construction, fixed-price contracts</li>
+            <li>Risk: feedback arrives late, when change is expensive</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🔁 Adaptive (agile)</h3>
+          <div class="sub2">Deliver in small increments and adjust as you learn.</div>
+          <div class="flow"><span>Plan</span><i>→</i><span>Build</span><i>→</i><span>Review</span><i>→</i><span>Adapt</span><i>↺</i></div>
+          <ul class="bullets">
+            <li>Short iterations or continuous flow</li>
+            <li>Scope evolves; time and team often fixed</li>
+            <li>Fits: uncertain needs, new products, fast feedback available</li>
+            <li>Risk: drifting without a clear goal or a product owner</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">The Agile Manifesto (2001)</h2>
+      <p class="sub">Four values. Tap each one. The right-hand items still matter.</p>
+      <div class="values" id="values"></div>
+
+      <h2 style="margin-top:40px">PRINCE2's 7 principles</h2>
+      <p class="sub">The UK's widely used predictive method. Its 7th edition (2023) keeps these principles.</p>
+      <div class="p2">
+        <span>💼 Continued business justification</span><span>📚 Learn from experience</span>
+        <span>👥 Defined roles, responsibilities &amp; relationships</span><span>🪜 Manage by stages</span>
+        <span>🚨 Manage by exception</span><span>📦 Focus on products</span><span>✂️ Tailor to suit the project</span>
+      </div>
+    </section>
+
+    <!-- ================= FRAMEWORKS ================= -->
+    <section class="section" id="frameworks">
+      <span class="step-label">🧰 Frameworks</span>
+      <h2>The names you'll hear</h2>
+      <p class="sub">The essentials of each, in the vocabulary teams actually use.</p>
+      <div class="seg" id="fw-tabs"></div>
+      <div class="fw-body" id="fw-body"></div>
+    </section>
+
+    <!-- ================= CHOOSE ================= -->
+    <section class="section" id="choose">
+      <span class="step-label">🧭 Choose</span>
+      <h2>Fit the approach to the uncertainty</h2>
+      <p class="sub">Set the two dials. Based on the Stacey matrix, a useful heuristic rather than a law.</p>
+
+      <div class="choose">
+        <div class="card">
+          <div class="axis-lbl">📋 How clear and agreed are the requirements?</div>
+          <div class="seg" id="ax-req"></div>
+          <div class="axis-lbl">⚙️ How well known is the technology?</div>
+          <div class="seg" id="ax-tech"></div>
+          <div class="axis-lbl">Where you land</div>
+          <div class="stacey" id="stacey"></div>
+        </div>
+        <div class="card rec" id="rec"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Cynefin: how to act in each domain</h2>
+      <p class="sub">Dave Snowden's sense-making framework. Tap a domain.</p>
+      <div class="card">
+        <div class="cyn" id="cyn"></div>
+        <div class="cyn-panel" id="cyn-panel"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Tailoring factors (PMBOK 7)</h2>
+      <p class="sub">What PMBOK 7 says to weigh when choosing the development approach.</p>
+      <div class="factors">
+        <div class="card"><h4 class="cap">📦 The product</h4><ul class="bullets"><li>Degree of innovation</li><li>Requirements certainty</li><li>Scope stability</li><li>Ease of change</li><li>Delivery options</li><li>Risk, safety, regulation</li></ul></div>
+        <div class="card"><h4 class="cap">🗂️ The project</h4><ul class="bullets"><li>Stakeholders and their availability</li><li>Schedule constraints</li><li>Funding availability</li></ul></div>
+        <div class="card"><h4 class="cap">🏢 The organization</h4><ul class="bullets"><li>Structure and culture</li><li>Team capability</li><li>Team size and location</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Which approach fits?</h2>
+      <p class="sub">6 real situations. Pick the best starting point.</p>
+      <div class="card quiz-card" id="quiz"></div>
+
+      <h2 style="margin-top:48px">Myth or fact?</h2>
+      <p class="sub">Things you'll hear in meetings. Tap your call.</p>
+      <div class="myths" id="myths"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When the team says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>No method is best. <b>Uncertainty</b> decides: stable scope suits predictive, unknowns suit agile.</li>
+          <li>Agile still plans and still has deadlines. It plans <b>more often</b>, in smaller steps.</li>
+          <li>Most teams run <b>hybrid</b>. Tailor deliberately and say why.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const $ = (id) => document.getElementById(id);
+    const PHASE = { Req: "#6b7bd6", Design: "#8e6bd6", Build: "#5b4bdb", Test: "#c98a0b", Cert: "#d64545", Rel: "#1f9d63" };
+
+    const PROJECTS = [
+      { key: "app", tab: "📱 Consumer app MVP", brief: "A new habit-tracking app. Nobody knows yet which features people will pay for.",
+        pred: { phases: [["Req", 2], ["Design", 2], ["Build", 5], ["Test", 2], ["Rel", 1]], marks: { 2: "🚦", 4: "🚦", 12: "💬🚀" },
+          stats: [["First real user feedback", "Week 12"], ["First value live", "Week 12"]],
+          change: "Design and build redone: about +4 weeks.", fit: ["bad", "Weak fit: the plan rests on guesses about users."] },
+        agile: { marks: { 2: "💬", 4: "💬🚀", 6: "💬🚀", 8: "💬🚀", 10: "💬🚀", 12: "💬🚀" },
+          stats: [["First real user feedback", "Week 2"], ["First value live", "Week 4"]],
+          change: "Added to the backlog, picked up next sprint: about 2 weeks.", fit: ["good", "Strong fit: learn from users every sprint."] },
+        moral: "💬 Uncertain market: learning fast beats planning everything up front." },
+      { key: "bill", tab: "🏥 Hospital billing integration", brief: "Connect to a national insurance billing standard. Rules are fixed by regulation; go-live needs certification.",
+        pred: { phases: [["Req", 2], ["Design", 2], ["Build", 4], ["Test", 2], ["Cert", 1], ["Rel", 1]], marks: { 2: "🚦", 4: "🚦", 10: "🚦", 12: "🚀" },
+          stats: [["Scope stability", "High, set by regulation"], ["First value live", "Week 12, after certification"]],
+          change: "Rare: regulation fixes scope. Changes go through change control.", fit: ["good", "Strong fit: stable rules, one certified go-live."] },
+        agile: { marks: { 2: "💬", 4: "💬", 6: "💬", 8: "💬", 10: "💬", 11: "🚦", 12: "🚀" },
+          stats: [["Scope stability", "High, set by regulation"], ["First value live", "Week 12, still waits for certification"]],
+          change: "Cheap to absorb, but scope rarely changes here.", fit: ["mid", "Works for the build, yet go-live still waits for the gate. Often run as hybrid."] },
+        moral: "💬 Fixed, regulated scope: up-front planning is a strength, not a sin." },
+    ];
+    let proj = 0, changed = false;
+
+    function predBar(phases) {
+      return phases.map(([p, w]) => `<div class="seg-bar" style="grid-column: span ${w}; background:${PHASE[p]}">${{ Req: "Req", Design: "Design", Build: "Build", Test: "Test", Cert: "Cert", Rel: "Go" }[p]}</div>`).join("");
+    }
+    function agileBar() {
+      return [1, 2, 3, 4, 5, 6].map((s) => `<div class="seg-bar" style="grid-column: span 2; background:${s % 2 ? "#5b4bdb" : "#7a6be8"}">Sprint ${s}</div>`).join("");
+    }
+    function marks(m) {
+      return Array.from({ length: 12 }, (_, i) => `<div class="marks">${[...(m[i + 1] || "")].filter((c) => c.trim() && c !== "️").map((c) => `<span>${c}</span>`).join("")}</div>`).join("");
+    }
+    function lane(title, motto, bar, d) {
+      return `<div class="card lane">
+        <h3>${title}</h3><div class="motto">${motto}</div>
+        <div class="tl">${bar}${marks(d.marks)}</div>
+        <div class="weeks-axis">${Array.from({ length: 12 }, (_, i) => `<span>W${i + 1}</span>`).join("")}</div>
+        <div class="stats">
+          ${d.stats.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("")}
+          <div class="stat"><span>Change in week 9</span><b>${changed ? d.change : "Tap the button below"}</b></div>
+        </div>
+        <div class="fit ${d.fit[0]}">${d.fit[1]}</div>
+      </div>`;
+    }
+    function renderExplore() {
+      const p = PROJECTS[proj];
+      $("proj-tabs").innerHTML = PROJECTS.map((x, i) => `<button class="btn ${i === proj ? "active" : ""}" data-proj="${i}">${x.tab}</button>`).join("");
+      $("brief").textContent = p.brief;
+      $("lanes").innerHTML = lane("📐 Predictive", "Plan it all, then build in phases.", predBar(p.pred.phases), p.pred)
+        + lane("🔁 Agile", "Two-week sprints, a usable slice each time.", agileBar(), p.agile);
+      $("moral").textContent = changed ? p.moral : "";
+      $("late-change").textContent = changed ? "↺ Reset" : "✋ Request a change in week 9";
+    }
+    $("proj-tabs").onclick = (e) => { const b = e.target.closest("[data-proj]"); if (b) { proj = +b.dataset.proj; changed = false; renderExplore(); } };
+    $("late-change").onclick = () => { changed = !changed; renderExplore(); };
+    renderExplore();
+
+    const VALUES = [
+      ["Individuals and interactions", "processes and tools", "Talk first. Tools support people, they don't replace conversations."],
+      ["Working software", "comprehensive documentation", "Progress is measured by what works. Write the docs people actually use."],
+      ["Customer collaboration", "contract negotiation", "Contracts still exist. Work with the customer, not against the contract."],
+      ["Responding to change", "following a plan", "Plans are still made. They are expected to change as you learn."],
+    ];
+    $("values").innerHTML = VALUES.map(([l, r, m]) => `
+      <button class="value" type="button">
+        <span class="over"><span class="l">${l}</span><span class="ov">over</span><span class="r">${r}</span></span>
+        <span class="more">${m}</span>
+      </button>`).join("");
+    document.querySelectorAll(".value").forEach((v) => v.onclick = () => v.classList.toggle("open"));
+
+    const list = (a) => `<ul>${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+    const WASTES = [
+      ["📦 Partially done work", "Code not merged, features not released."],
+      ["➕ Extra features", "Building what nobody asked for or uses."],
+      ["🔁 Relearning", "Rediscovering knowledge that wasn't captured."],
+      ["🤝 Handoffs", "Knowledge lost every time work changes hands."],
+      ["⏳ Delays", "Waiting for reviews, approvals, environments."],
+      ["🔀 Task switching", "Juggling projects drains focus."],
+      ["🐞 Defects", "Rework, especially when found late."],
+    ];
+    let wip = 3;
+    const FW = [
+      { tab: "🏉 Scrum", render: () => `
+        <div class="trio">
+          <div class="card"><h4 class="cap">3 accountabilities</h4>${list(["<b>Product Owner</b>: maximizes value, owns the Product Backlog", "<b>Scrum Master</b>: the Scrum Team's effectiveness, coaches the team", "<b>Developers</b>: build a usable Increment each Sprint"])}</div>
+          <div class="card"><h4 class="cap">5 events</h4>${list(["<b>Sprint</b>: one month or less, contains the rest", "<b>Sprint Planning</b>: why, what, how", "<b>Daily Scrum</b>: 15 minutes, progress to Sprint Goal", "<b>Sprint Review</b>: inspect the Increment with stakeholders", "<b>Sprint Retrospective</b>: improve how we work"])}</div>
+          <div class="card"><h4 class="cap">3 artifacts + commitments</h4>${list(["<b>Product Backlog</b> → Product Goal", "<b>Sprint Backlog</b> → Sprint Goal", "<b>Increment</b> → Definition of Done"])}</div>
+        </div>
+        <p class="note">Source: The Scrum Guide (Schwaber &amp; Sutherland, 2020).</p>` },
+      { tab: "📋 Kanban", render: () => `
+        <div class="kb">
+          <div class="card">
+            <h4 class="cap">A board with a WIP limit</h4>
+            <div class="stepper2"><button class="btn" data-wip="-1" aria-label="Lower WIP limit">−</button><span>WIP limit</span><b>${wip}</b><button class="btn" data-wip="1" aria-label="Raise WIP limit">+</button></div>
+            <div class="board">
+              <div class="col"><h5>To do</h5>${"<div class='ticket'>Ticket</div>".repeat(4)}</div>
+              <div class="col"><h5>Doing <span>${wip}/${wip}</span></h5>${"<div class='ticket'>In progress</div>".repeat(wip)}</div>
+              <div class="col"><h5>Done</h5><div class="ticket">Shipped</div><div class="ticket">Shipped</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <h4 class="cap">Little's Law</h4>
+            <div class="big">${(wip / 2).toFixed(1)} days</div>
+            <div class="formula">avg lead time = avg WIP ÷ throughput<br>${wip} items ÷ 2 per day</div>
+            <ul class="bullets" style="margin-top:12px"><li>Same throughput, more WIP: every item takes longer</li><li>"Stop starting, start finishing"</li></ul>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px"><h4 class="cap">Core practices (Kanban Method, David J. Anderson)</h4>
+          <div class="pill-list"><span>👁️ Visualize the workflow</span><span>🚧 Limit WIP</span><span>🌊 Manage flow</span><span>📜 Make policies explicit</span><span>🔁 Implement feedback loops</span><span>🧪 Improve collaboratively</span></div></div>
+        <p class="note">Little's Law holds for a stable system over time. Numbers are illustrative.</p>` },
+      { tab: "🌿 Lean", render: () => `
+        <p class="sub" style="text-align:center">The 7 wastes of software development (Mary &amp; Tom Poppendieck). Tap one.</p>
+        <div class="wastes">${WASTES.map(([t, d]) => `<button class="waste" type="button"><b>${t}</b><div class="w-more">${d}</div></button>`).join("")}</div>` },
+      { tab: "🧬 Hybrid", render: () => `
+        <div class="hyb">
+          <div class="card"><h4 class="cap">✅ Common, healthy hybrids</h4>${list(["Predictive phases and gates, agile sprints inside Build", "Fixed-date milestone, flexible scope within it", "Agile teams, predictive vendor or hardware tracks", "Up-front architecture spike, then iterative delivery"])}</div>
+          <div class="card"><h4 class="cap">⚠️ Water-Scrum-Fall</h4>${list(["Big up-front requirements, then \"sprints\", then a big-bang release", "Feels agile, delivers waterfall's late feedback", "Named by Dave West (Forrester, 2011)", "Fix: release smaller, involve users every sprint"])}</div>
+        </div>` },
+      { tab: "🏢 At scale", render: () => `
+        <div class="trio">
+          <div class="card"><h4 class="cap">SAFe</h4>${list(["Agile Release Trains of 5–12 teams", "PI Planning: all teams plan a Program Increment together", "Most structured, most roles"])}</div>
+          <div class="card"><h4 class="cap">LeSS</h4>${list(["Large-Scale Scrum", "One Product Owner, one Product Backlog", "Several teams, minimal extra roles"])}</div>
+          <div class="card"><h4 class="cap">Nexus · Scrum@Scale</h4>${list(["Nexus: 3–9 Scrum teams, from Scrum.org", "Scrum@Scale: by Jeff Sutherland", "Both extend Scrum rather than replace it"])}</div>
+        </div>
+        <p class="note">More depth in the next track: explore-agile.</p>` },
+    ];
+    let fw = 0;
+    function renderFw() {
+      $("fw-tabs").innerHTML = FW.map((f, i) => `<button class="btn ${i === fw ? "active" : ""}" data-fw="${i}">${f.tab}</button>`).join("");
+      $("fw-body").innerHTML = FW[fw].render();
+    }
+    $("frameworks").addEventListener("click", (e) => {
+      const t = e.target.closest("[data-fw]"), w = e.target.closest("[data-wip]"), ws = e.target.closest(".waste");
+      if (t) { fw = +t.dataset.fw; renderFw(); }
+      if (w) { wip = Math.min(8, Math.max(1, wip + +w.dataset.wip)); renderFw(); }
+      if (ws) ws.classList.toggle("open");
+    });
+    renderFw();
+
+    const REQ = ["Clear", "Partly", "Unclear"], TECH = ["Known", "Partly", "Unknown"];
+    let rq = 0, th = 0;
+    const ZONE = (r, t) => {
+      const s = r + t;
+      if (r === 2 && t === 2) return "chaos";
+      if (s === 0) return "simple";
+      if (s <= 1) return "compl";
+      return "complex";
+    };
+    const REC = {
+      simple: { icon: "📐", name: "Simple: predictive", why: ["Requirements agreed, tech well known", "Plan up front, execute, control change", "Checklists and best practice work"], watch: "Complacency: confirm the requirements really are agreed." },
+      compl: { icon: "🧩", name: "Complicated: predictive or hybrid", why: ["Knowable with analysis and experts", "Plan the known parts, timebox spikes for the rest", "Phase gates with iterative build often fit"], watch: "Analysis paralysis: set a deadline for the spikes." },
+      complex: { icon: "🔁", name: "Complex: agile", why: ["Answers emerge only by trying", "Short iterations, frequent feedback", "Fix time, flex scope"], watch: "Iterating without a goal: keep a clear product goal." },
+      chaos: { icon: "🔥", name: "Chaotic: stabilize first", why: ["Too unclear to plan or iterate sensibly", "Act to stabilize: spikes, prototypes, discovery", "Then move to complex and go agile"], watch: "Committing to dates before you understand the problem." },
+    };
+    const ZCLS = { simple: "z-simple", compl: "z-compl", complex: "z-complex", chaos: "z-chaos" };
+    const ZLBL = { simple: "Simple", compl: "Complicated", complex: "Complex", chaos: "Chaotic" };
+    function renderChoose() {
+      $("ax-req").innerHTML = REQ.map((x, i) => `<button class="btn ${i === rq ? "active" : ""}" data-rq="${i}">${x}</button>`).join("");
+      $("ax-tech").innerHTML = TECH.map((x, i) => `<button class="btn ${i === th ? "active" : ""}" data-th="${i}">${x}</button>`).join("");
+      let cells = `<div class="ax-y">Requirements → less clear</div>`;
+      for (let r = 0; r < 3; r++) for (let t = 0; t < 3; t++) {
+        const z = ZONE(r, t);
+        cells += `<div class="st-cell ${ZCLS[z]} ${r === rq && t === th ? "on" : ""}" style="grid-row:${3 - r};grid-column:${t + 2}">${ZLBL[z]}</div>`;
+      }
+      cells += `<div class="ax-x">Technology → less known</div>`;
+      $("stacey").innerHTML = cells;
+      const z = REC[ZONE(rq, th)];
+      $("rec").innerHTML = `<h4 class="cap">Recommended starting point</h4><div style="font-size:40px">${z.icon}</div><h3>${z.name}</h3>
+        <ul class="bullets">${z.why.map((x) => `<li>${x}</li>`).join("")}</ul>
+        <div class="fit mid"><b>⚠️ Watch out:</b> ${z.watch}</div>
+        <p class="note" style="text-align:left">Ralph Stacey later cautioned against using the matrix as a strict rule. Treat it as a conversation starter.</p>`;
+    }
+    $("choose").addEventListener("click", (e) => {
+      const a = e.target.closest("[data-rq]"), b = e.target.closest("[data-th]");
+      if (a) { rq = +a.dataset.rq; renderChoose(); }
+      if (b) { th = +b.dataset.th; renderChoose(); }
+    });
+    renderChoose();
+
+    const CYN = [
+      ["Clear", "sense → categorize → respond", "Cause and effect are obvious. Use best practice.", "Password reset flow, routine patching"],
+      ["Complicated", "sense → analyze → respond", "Cause and effect need expert analysis. Use good practice.", "Database performance tuning, migration planning"],
+      ["Complex", "probe → sense → respond", "Cause and effect only visible in hindsight. Run safe-to-fail experiments.", "New product discovery, changing team culture"],
+      ["Chaotic", "act → sense → respond", "No visible cause and effect. Act to stabilize, then reassess.", "Production outage, security breach"],
+    ];
+    let cy = 2;
+    function renderCyn() {
+      $("cyn").innerHTML = CYN.map(([n, how], i) => `<button class="cyn-btn ${i === cy ? "on" : ""}" type="button" data-cy="${i}"><b>${n}</b><code>${how}</code></button>`).join("");
+      const [n, , what, ex] = CYN[cy];
+      $("cyn-panel").innerHTML = `<b>${n}:</b> ${what}<br><span style="color:var(--muted)">In software: ${ex}.</span>
+        <div class="note" style="text-align:left">A fifth domain, Confusion, means you don't yet know which domain you're in.</div>`;
+    }
+    $("cyn").onclick = (e) => { const b = e.target.closest("[data-cy]"); if (b) { cy = +b.dataset.cy; renderCyn(); } };
+    renderCyn();
+
+    const OPTS = ["Predictive", "Agile (Scrum)", "Kanban", "Hybrid"];
+    const QUIZ = [
+      ["Firmware for a regulated medical device. Requirements fixed by the regulator; hardware tooling takes months.", 0, "Fixed, regulated scope and long hardware lead times favor up-front planning and gated phases."],
+      ["A new consumer fitness app. Nobody knows yet what users will pay for.", 1, "High requirements uncertainty: short sprints and user feedback reduce the risk of building the wrong thing."],
+      ["An IT support team handling a constant stream of tickets of very different sizes.", 2, "Continuous, unpredictable work fits flow with WIP limits better than fixed-length sprints."],
+      ["An ERP rollout with fixed contract milestones, plus a brand-new custom web portal.", 3, "Contract milestones suit predictive control; the new portal benefits from agile iterations."],
+      ["A platform team improving internal tooling, with frequent urgent interrupts.", 2, "Interrupt-heavy work breaks sprint commitments. Kanban absorbs it while limiting WIP."],
+      ["Moving the office to a new building on a fixed date, with well-understood tasks.", 0, "Known tasks, a hard date and little uncertainty: a classic predictive plan."],
+    ];
+    let qi = 0, results = [], answered = false;
+    function renderQuiz(pick) {
+      const dots = QUIZ.map((_, i) => `<i class="${results[i] === true ? "good" : results[i] === false ? "bad" : ""}"></i>`).join("");
+      if (qi >= QUIZ.length) {
+        const s = results.filter(Boolean).length;
+        $("quiz").innerHTML = `<div class="dots">${dots}</div><div class="q">${s >= 5 ? "🏆" : s >= 3 ? "👍" : "🌱"} ${s} / ${QUIZ.length}</div>
+          <p class="fb hint">Real projects rarely fit one box. The skill is explaining your choice.</p>
+          <button class="btn primary" data-restart>Try again</button>`;
+        return;
+      }
+      const [q, ans, why] = QUIZ[qi];
+      $("quiz").innerHTML = `<div class="dots">${dots}</div><div class="q">${q}</div>
+        <div class="opts">${OPTS.map((o, i) => `<button class="btn ${answered ? (i === ans ? "right" : i === pick ? "wrong" : "") : ""}" data-opt="${i}">${o}</button>`).join("")}</div>
+        <div class="fb ${answered ? "" : "hint"}">${answered ? `${pick === ans ? "✅ Right." : `❌ Best fit: ${OPTS[ans]}.`} ${why}` : "Think about uncertainty, constraints and the type of work."}</div>
+        ${answered ? `<button class="btn primary" data-next>${qi === QUIZ.length - 1 ? "See score" : "Next →"}</button>` : ""}`;
+    }
+    $("quiz").onclick = (e) => {
+      const o = e.target.closest("[data-opt]");
+      if (o && !answered) { answered = true; results[qi] = +o.dataset.opt === QUIZ[qi][1]; renderQuiz(+o.dataset.opt); }
+      if (e.target.closest("[data-next]")) { qi++; answered = false; renderQuiz(); }
+      if (e.target.closest("[data-restart]")) { qi = 0; results = []; answered = false; renderQuiz(); }
+    };
+    renderQuiz();
+
+    const MYTHS = [
+      ["Agile means no documentation.", false, "Myth. The Manifesto values working software over comprehensive documentation, not instead of it."],
+      ["Agile has no planning.", false, "Myth. Planning happens continuously: Sprint Planning, backlog refinement, release planning."],
+      ["Waterfall can't iterate.", false, "Myth. Even Royce's 1970 paper recommended feedback loops, and predictive phases can contain iterations."],
+      ["Scrum defines exactly three accountabilities.", true, "Fact. Product Owner, Scrum Master and Developers (Scrum Guide 2020)."],
+      ["The Kanban Method starts with your current process.", true, "Fact. \"Start with what you do now\" and evolve it, without prescribing new roles."],
+      ["Hybrid always means doing both badly.", false, "Myth. PMBOK 7 explicitly encourages tailoring. Hybrid done deliberately fits real constraints."],
+    ];
+    const mAns = {};
+    function renderMyths() {
+      $("myths").innerHTML = MYTHS.map(([s, fact, why], i) => {
+        const a = mAns[i];
+        const cls = (v) => a === undefined ? "" : v === fact ? "right" : a === v ? "wrong" : "";
+        return `<div class="card myth"><div class="stmt">"${s}"</div>
+          <div class="mf"><button class="btn ${cls(false)}" data-m="${i}" data-v="0">🙅 Myth</button><button class="btn ${cls(true)}" data-m="${i}" data-v="1">✅ Fact</button></div>
+          <div class="why">${a === undefined ? "Tap Myth or Fact to see the answer." : why}</div></div>`;
+      }).join("");
+    }
+    $("myths").onclick = (e) => { const b = e.target.closest("[data-m]"); if (b) { mAns[b.dataset.m] = b.dataset.v === "1"; renderMyths(); } };
+    renderMyths();
+
+    const LENS = [
+      ["\"We're agile, so no deadlines.\"", "Agile fixes time-boxes and often dates; scope is what flexes.", "What's the date, and which scope are we willing to trade to hit it?"],
+      ["\"We do Scrum, but…\"", "\"ScrumBut\": dropping parts of Scrum, often the parts that expose problems.", "Which part did we drop, and what problem was it meant to reveal?"],
+      ["\"This needs a stage gate.\"", "A formal go/no-go decision before the next phase.", "What evidence does the gate need, and who decides?"],
+      ["\"What's our WIP limit?\"", "The cap on work in progress per column or team.", "What happens when we hit it: do we swarm or start new work?"],
+      ["\"Let's go hybrid.\"", "Mixing predictive and agile practices.", "Which parts are fixed, which flex, and why that split?"],
+      ["\"We need PI Planning.\"", "SAFe's event where all teams on a train plan the next Program Increment together.", "Is our problem really cross-team alignment, or would a lighter sync do?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(8);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>The "T" in TPM · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    /* ---------- Shared bits ---------- */
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+    .seg .btn { min-height: 44px; }
+    .seg .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .panel h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .panel h3 { margin: 0 0 4px; font-size: 20px; }
+    .panel .muted { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .ask { background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; }
+    .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .tag.good { background: var(--good-soft); color: var(--good); }
+    .tag.bad { background: var(--bad-soft); color: var(--bad); }
+    .tag.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+    .note { color: var(--muted); font-size: 13px; text-align: center; margin-top: 14px; }
+    .center { text-align: center; }
+
+    /* ---------- Explore: dependency map ---------- */
+    .feature { text-align: center; margin-bottom: 16px; }
+    .feature span { display: inline-block; background: var(--accent-soft); color: var(--accent); font-weight: 800; padding: 10px 18px; border-radius: 14px; }
+    .dep-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 700px) { .dep-layout { grid-template-columns: 1fr; } }
+    .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .team {
+      font: inherit; text-align: left; cursor: pointer; color: var(--text);
+      background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius);
+      padding: 14px; min-height: 120px; display: flex; flex-direction: column; gap: 6px;
+      transition: border-color .2s, background .2s;
+    }
+    .team:hover, .team.active { border-color: var(--accent); }
+    .team.blocker { border-color: var(--bad); background: var(--bad-soft); }
+    .team .ic { font-size: 26px; }
+    .team b { font-size: 15px; }
+    .team small { color: var(--muted); font-size: 13px; }
+    .tl { margin: 10px 0 4px; }
+    .tl-row { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 12px; margin: 6px 0; color: var(--muted); }
+    .tl-track { position: relative; height: 14px; border-radius: 999px; background: var(--surface-2); }
+    .tl-track i { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+    .tl-need { background: var(--accent); }
+    .tl-have { background: var(--good); }
+    .tl-have.late { background: var(--bad); }
+    .tl-axis { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; font-size: 11px; color: var(--muted); }
+    .tl-axis div:last-child { display: flex; justify-content: space-between; }
+    .blocker-q { margin-top: 20px; text-align: center; }
+    .blocker-q .seg .btn { min-width: 140px; }
+    .fb { min-height: 24px; font-weight: 700; margin-top: 8px; text-align: center; }
+    .fb.good { color: var(--good); }
+    .fb.bad { color: var(--bad); }
+    .moves { margin-top: 16px; display: none; }
+    .moves.show { display: grid; }
+
+    /* ---------- Pipeline ---------- */
+    .pipe { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+    .stage {
+      font: inherit; cursor: pointer; color: var(--text); text-align: center;
+      background: var(--surface-2); border: 2px solid transparent; border-radius: 14px;
+      padding: 12px 10px; min-width: 104px; min-height: 44px; transition: border-color .2s;
+    }
+    .stage:hover, .stage.active { border-color: var(--accent); }
+    .stage .e { font-size: 24px; display: block; }
+    .stage .t { font-weight: 800; font-size: 14px; }
+    .pipe .arrow { align-self: center; color: var(--muted); }
+    .wb { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .wb { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .wb .card { padding: 14px; }
+    .wb .card b { display: block; margin: 4px 0; }
+    .wb .card p { margin: 0; font-size: 13px; color: var(--muted); }
+    .adr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 700px) { .adr { grid-template-columns: 1fr; } }
+    .adr-doc { font-size: 14px; }
+    .adr-doc .row { padding: 10px 0; border-top: 1px dashed var(--line); }
+    .adr-doc .row:first-of-type { border-top: 0; }
+    .adr-doc .k { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+    /* ---------- Debt ---------- */
+    .debt-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
+    @media (max-width: 760px) { .debt-wrap { grid-template-columns: 1fr; } }
+    .ex-list { display: flex; flex-direction: column; gap: 8px; }
+    .ex {
+      font: inherit; text-align: left; cursor: pointer; color: var(--text); font-size: 14px;
+      background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 44px;
+    }
+    .ex.sel { border-color: var(--accent); background: var(--accent-soft); }
+    .ex.ok { border-color: var(--good); background: var(--good-soft); }
+    .ex.no { border-color: var(--bad); background: var(--bad-soft); }
+    .quad { display: grid; grid-template-columns: 70px 1fr 1fr; grid-template-rows: auto 1fr 1fr; gap: 8px; }
+    .quad .ax { font-size: 12px; font-weight: 800; color: var(--muted); display: grid; place-items: center; text-align: center; letter-spacing: .06em; text-transform: uppercase; }
+    .qcell {
+      font: inherit; cursor: pointer; color: var(--text); text-align: left;
+      border: 2px dashed var(--line); border-radius: 14px; padding: 12px; min-height: 120px; background: var(--surface);
+    }
+    .qcell.ready { border-color: var(--accent); background: var(--accent-soft); }
+    .qcell b { display: block; font-size: 14px; }
+    .qcell .qq { display: block; font-size: 12px; color: var(--muted); margin: 4px 0 8px; }
+    .qcell .placed { font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .qcell .placed span { background: var(--surface-2); padding: 3px 8px; border-radius: 8px; }
+    .cap { margin-top: 20px; }
+    .cap-bar { display: flex; height: 36px; border-radius: 12px; overflow: hidden; margin: 10px 0; font-size: 13px; font-weight: 700; color: #fff; }
+    .cap-bar div { display: grid; place-items: center; transition: flex-basis .3s; white-space: nowrap; overflow: hidden; }
+    .cap-bar .f { background: var(--accent); }
+    .cap-bar .d { background: var(--warn); }
+    input[type=range] { width: 100%; min-height: 44px; accent-color: var(--accent); }
+
+    /* ---------- Release ---------- */
+    .rel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .rel { grid-template-columns: 1fr; } }
+    .users { display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; margin: 8px 0 12px; }
+    .users i { aspect-ratio: 1; border-radius: 50%; background: var(--surface-2); transition: background .3s; }
+    .users i.on { background: var(--accent); }
+    .users i.dark { background: color-mix(in srgb, var(--accent) 35%, var(--surface-2)); }
+    .meter-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: center; font-size: 13px; margin: 6px 0; }
+    .meter { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+    .meter i { display: block; height: 100%; border-radius: 999px; transition: width .3s; }
+    .sev { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .sev th, .sev td { text-align: left; padding: 10px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+    .sev th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-top: 0; }
+    .sev .s { font-weight: 800; white-space: nowrap; }
+    .inc-flow { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 14px; }
+    .inc-step {
+      font: inherit; cursor: pointer; color: var(--text); background: var(--surface-2);
+      border: 2px solid transparent; border-radius: 999px; padding: 8px 14px; min-height: 44px; font-weight: 700; font-size: 14px;
+    }
+    .inc-step.active { border-color: var(--accent); }
+    .roles4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .roles4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .roles4 .card { padding: 14px; }
+    .roles4 .card b { display: block; margin: 4px 0; }
+    .roles4 .card p { margin: 0; font-size: 13px; color: var(--muted); }
+
+    /* ---------- Reliability ---------- */
+    .slo3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 700px) { .slo3 { grid-template-columns: 1fr; } }
+    .slo3 .card { padding: 16px; }
+    .slo3 .big { font-size: 22px; font-weight: 800; }
+    .slo3 p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+    .eb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 760px) { .eb { grid-template-columns: 1fr; } }
+    .eb label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin: 12px 0 6px; }
+    .eb label:first-child { margin-top: 0; }
+    .pick { display: grid; gap: 6px; }
+    .pick5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .pick4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pick .btn { min-height: 44px; padding: 8px 4px; font-size: 14px; }
+    .pick .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .eb-out .num { font-size: 40px; font-weight: 800; line-height: 1.1; }
+    .eb-out .sub2 { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+    .burn { height: 18px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 8px 0; }
+    .burn i { display: block; height: 100%; transition: width .3s, background .3s; }
+    .dora { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .dora { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .dora .card { padding: 14px; }
+    .dora .card b { display: block; margin: 6px 0 4px; }
+    .dora .card p { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+
+    /* ---------- Try ---------- */
+    .quiz-card { max-width: 720px; margin: 0 auto; }
+    .q-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+    .q-dots i { width: 28px; height: 6px; border-radius: 999px; background: var(--line); }
+    .q-dots i.good { background: var(--good); }
+    .q-dots i.bad { background: var(--bad); }
+    .q-sit { font-size: 18px; font-weight: 700; text-align: center; margin: 4px 0 16px; }
+    .q-opts { display: grid; gap: 8px; }
+    .q-opt {
+      font: inherit; text-align: left; cursor: pointer; color: var(--text); font-size: 15px;
+      background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; min-height: 48px;
+    }
+    .q-opt:hover { border-color: var(--accent); }
+    .q-opt.ok { border-color: var(--good); background: var(--good-soft); }
+    .q-opt.no { border-color: var(--bad); background: var(--bad-soft); }
+    .q-why { margin-top: 12px; min-height: 48px; font-size: 14px; }
+    .q-next { text-align: center; margin-top: 12px; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 11 The "T" in TPM</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 11 · The "T" in TPM</div>
+      <h1>Own the seams.</h1>
+      <p>Enough technical depth to unblock teams, ship safely and talk reliability.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#pipeline">💡 Pipeline</a>
+        <a href="#debt">🧾 Tech debt</a>
+        <a href="#release">🚀 Releases</a>
+        <a href="#reliability">📈 Reliability</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>One feature, four teams</h2>
+      <p class="sub">Tap each team to see what they're busy with. Then find the blocker.</p>
+
+      <div class="feature"><span>📱 One-tap checkout · target: week 6</span></div>
+      <div class="dep-layout">
+        <div class="teams" id="teams"></div>
+        <div class="card panel" id="team-panel"></div>
+      </div>
+
+      <div class="blocker-q">
+        <h3 style="margin:0 0 10px">Which team blocks the week 6 launch?</h3>
+        <div class="seg" id="blocker-btns"></div>
+        <div class="fb" id="blocker-fb"></div>
+      </div>
+      <div class="cols moves" id="moves">
+        <div class="card"><h4 style="margin:0 0 6px;color:var(--accent);font-size:13px;letter-spacing:.08em;text-transform:uppercase">📄 Contract first</h4>
+          <ul class="bullets"><li>Agree the API contract (OpenAPI) now</li><li>Mobile builds against a mock</li><li>Payments implements after the audit</li></ul></div>
+        <div class="card"><h4 style="margin:0 0 6px;color:var(--accent);font-size:13px;letter-spacing:.08em;text-transform:uppercase">⚖️ Align priorities</h4>
+          <ul class="bullets"><li>Bring both roadmaps to one table</li><li>Let leaders trade off with data</li><li>Escalate early, not at week 5</li></ul></div>
+        <div class="card"><h4 style="margin:0 0 6px;color:var(--accent);font-size:13px;letter-spacing:.08em;text-transform:uppercase">📅 Book the queues</h4>
+          <ul class="bullets"><li>Request the security review today</li><li>Track every external date in the RAID log</li><li>Re-plan the launch if needed</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ================= PIPELINE ================= -->
+    <section class="section" id="pipeline">
+      <span class="step-label">💡 Learn</span>
+      <h2>Follow a change to production</h2>
+      <p class="sub">Tap a stage: what happens, what breaks, what to ask.</p>
+      <div class="pipe" id="pipe"></div>
+      <div class="card panel" id="stage-panel"></div>
+
+      <h2 style="margin-top:40px">Whiteboard essentials</h2>
+      <p class="sub">The building blocks you'll see in every architecture diagram.</p>
+      <div class="wb" id="wb"></div>
+
+      <h2 style="margin-top:40px">Architecture Decision Records</h2>
+      <p class="sub">A short doc per significant decision (Michael Nygard's format).</p>
+      <div class="adr">
+        <div class="card adr-doc">
+          <div class="k" style="margin-bottom:6px">ADR-014 · Example</div>
+          <div class="row"><div class="k">Title</div>Use PostgreSQL for the orders service</div>
+          <div class="row"><div class="k">Status</div>Accepted</div>
+          <div class="row"><div class="k">Context</div>Orders need transactions and joins. The team already runs Postgres.</div>
+          <div class="row"><div class="k">Decision</div>Store orders in PostgreSQL, not the document store.</div>
+          <div class="row"><div class="k">Consequences</div>Strong consistency. Schema migrations need planning.</div>
+        </div>
+        <div class="card">
+          <h4 style="margin:0 0 6px;color:var(--accent);font-size:13px;letter-spacing:.08em;text-transform:uppercase">Why a TPM cares</h4>
+          <ul class="bullets">
+            <li>Decisions stop being re-argued every quarter</li>
+            <li>New joiners learn the "why" in minutes</li>
+            <li>Consequences become planned work, not surprises</li>
+            <li>Superseded, never deleted: history stays</li>
+          </ul>
+          <div class="ask" style="margin-top:12px">💬 "Is there an ADR for this? Who reviewed it?"</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DEBT ================= -->
+    <section class="section" id="debt">
+      <span class="step-label">💡 Learn</span>
+      <h2>Not all tech debt is equal</h2>
+      <p class="sub">Martin Fowler's debt quadrant. Tap an example, then the quadrant it fits.</p>
+      <div class="debt-wrap">
+        <div>
+          <div class="ex-list" id="ex-list"></div>
+          <div class="seg" style="margin-top:14px">
+            <button class="btn primary" id="debt-check">Check</button>
+            <button class="btn" id="debt-reset">Reset</button>
+          </div>
+          <div class="fb" id="debt-fb"></div>
+        </div>
+        <div class="quad" id="quad"></div>
+      </div>
+
+      <div class="card cap">
+        <h3 style="margin:0">Paying it down: protect capacity</h3>
+        <p class="muted" style="margin:4px 0 0">A common practice: reserve a fixed share of every sprint. Not a rule; teams pick their own number.</p>
+        <div class="cap-bar"><div class="f" id="cap-f">Features</div><div class="d" id="cap-d">Debt</div></div>
+        <input type="range" id="cap" min="0" max="40" step="5" value="15" aria-label="Debt capacity percent">
+        <div class="center" id="cap-msg" style="font-weight:700"></div>
+      </div>
+    </section>
+
+    <!-- ================= RELEASE ================= -->
+    <section class="section" id="release">
+      <span class="step-label">💡 Learn</span>
+      <h2>Ship without holding your breath</h2>
+      <p class="sub">Release strategies trade cost for a smaller blast radius and faster rollback.</p>
+      <div class="seg" id="rel-tabs"></div>
+      <div class="rel">
+        <div class="card">
+          <h4 style="margin:0 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Who sees the change (100 users)</h4>
+          <div class="users" id="users"></div>
+          <div id="rel-meters"></div>
+        </div>
+        <div class="card panel" id="rel-panel"></div>
+      </div>
+      <p class="note">Go / no-go decisions get a deep dive in Chapter 12.</p>
+
+      <h2 style="margin-top:40px">When production breaks</h2>
+      <p class="sub">Severity levels are an example; every company defines its own.</p>
+      <div class="card" style="overflow-x:auto">
+        <table class="sev">
+          <thead><tr><th>Level</th><th>Example</th><th>Response</th></tr></thead>
+          <tbody>
+            <tr><td class="s"><span class="tag bad">SEV 1</span></td><td>Checkout down for everyone</td><td>All hands now, exec updates</td></tr>
+            <tr><td class="s"><span class="tag warn">SEV 2</span></td><td>Major feature broken, workaround exists</td><td>On-call + owners, same day</td></tr>
+            <tr><td class="s"><span class="tag good">SEV 3</span></td><td>Minor bug, few users affected</td><td>Normal backlog priority</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin:28px 0 10px;text-align:center">Incident timeline</h3>
+      <div class="inc-flow" id="inc-flow"></div>
+      <div class="card panel" id="inc-panel"></div>
+
+      <h3 style="margin:28px 0 10px;text-align:center">Incident roles</h3>
+      <div class="roles4">
+        <div class="card"><span style="font-size:24px">🎖️</span><b>Incident commander</b><p>Coordinates, decides, delegates. Doesn't debug.</p></div>
+        <div class="card"><span style="font-size:24px">🛠️</span><b>Ops / tech lead</b><p>Leads the hands-on fix and mitigation.</p></div>
+        <div class="card"><span style="font-size:24px">📣</span><b>Comms lead</b><p>Status page, stakeholders, regular updates.</p></div>
+        <div class="card"><span style="font-size:24px">📝</span><b>Scribe</b><p>Timeline of actions and decisions for the postmortem.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= RELIABILITY ================= -->
+    <section class="section" id="reliability">
+      <span class="step-label">💡 Learn</span>
+      <h2>SLIs, SLOs and error budgets</h2>
+      <p class="sub">From Google's Site Reliability Engineering book: reliability as a number you can plan with.</p>
+      <div class="slo3">
+        <div class="card"><div class="big">SLI</div><b>Indicator</b><p>What you measure. e.g. % of requests served under 300 ms.</p></div>
+        <div class="card"><div class="big">SLO</div><b>Objective</b><p>Your internal target. e.g. 99.9% over 30 days.</p></div>
+        <div class="card"><div class="big">SLA</div><b>Agreement</b><p>A promise to customers, with penalties. Looser than the SLO.</p></div>
+      </div>
+
+      <div class="eb card">
+        <div>
+          <label for="eb-slo">SLO target</label>
+          <div class="pick pick5" id="eb-slo"></div>
+          <label for="eb-days">Window</label>
+          <div class="pick pick4" id="eb-days"></div>
+          <label for="eb-used">Downtime so far: <span id="eb-used-v"></span></label>
+          <input type="range" id="eb-used" min="0" max="120" step="1" value="10">
+        </div>
+        <div class="eb-out" id="eb-out"></div>
+      </div>
+
+      <h2 style="margin-top:40px">DORA: the four keys</h2>
+      <p class="sub">From Google's DevOps Research and Assessment program. Two for speed, two for stability.</p>
+      <div class="dora">
+        <div class="card"><span class="tag good">Speed</span><b>Deployment frequency</b><p>How often you ship to production.</p><div class="ask">💬 "What stops us shipping daily?"</div></div>
+        <div class="card"><span class="tag good">Speed</span><b>Lead time for changes</b><p>Commit to running in production.</p><div class="ask">💬 "Where does work wait?"</div></div>
+        <div class="card"><span class="tag warn">Stability</span><b>Change failure rate</b><p>% of deployments that cause a failure.</p><div class="ask">💬 "What do our tests miss?"</div></div>
+        <div class="card"><span class="tag warn">Stability</span><b>Time to restore</b><p>How fast you restore service after a production failure. Newer reports narrow it to failed deployment recovery time.</p><div class="ask">💬 "Can we roll back in minutes?"</div></div>
+      </div>
+      <p class="note">Speed and stability move together in high performers: small, frequent changes are safer.</p>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>What should the TPM ask?</h2>
+      <p class="sub">Six technical situations. Pick the best next step.</p>
+      <div class="card quiz-card" id="quiz"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When the engineer says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>Your job is the <b>seams</b>: contracts, dependencies and shared dates between teams.</li>
+          <li>Make risk <b>small</b>: feature flags, canaries and fast rollback beat big-bang launches.</li>
+          <li>Plan with <b>numbers</b>: error budgets and DORA metrics turn "is it stable?" into data.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const list = (a) => `<ul class="bullets">${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+
+    /* ---------- Explore: dependency map ---------- */
+    const TEAMS = [
+      { ic: "📱", name: "Mobile", short: "Owns the feature", need: [0, 6], have: [1, 5],
+        focus: ["One-tap checkout UI", "App store release train every 2 weeks"],
+        needs: "Payments endpoint + events", ask: "When is the last build that can make week 6?" },
+      { ic: "💳", name: "Payments API", short: "New tokenized-charge endpoint", need: [1, 3], have: [6, 8], late: true,
+        focus: ["PCI DSS audit until week 6", "Nothing else gets staffed before then"],
+        needs: "Spec from Mobile", ask: "Can we agree the contract now and build after the audit?" },
+      { ic: "📊", name: "Data platform", short: "Checkout events + dashboard", need: [3, 5], have: [3, 5],
+        focus: ["Event pipeline migration", "Has slack from week 3"],
+        needs: "Event schema", ask: "Is the schema reviewed before week 3?" },
+      { ic: "🔐", name: "Security review", short: "Sign-off before launch", need: [4, 5], have: [4, 5],
+        focus: ["2-week queue for reviews", "Only books with a design doc"],
+        needs: "Design doc + threat model", ask: "Can we book the slot today?" },
+    ];
+    let activeTeam = 0, blockerFound = false;
+    const teamsEl = document.getElementById("teams");
+    const tlRow = (label, r, cls) =>
+      `<div class="tl-row"><span>${label}</span><div class="tl-track"><i class="${cls}" style="left:${r[0] / 8 * 100}%;width:${(r[1] - r[0]) / 8 * 100}%"></i></div></div>`;
+    function renderTeams() {
+      teamsEl.innerHTML = TEAMS.map((t, i) => `
+        <button class="team ${i === activeTeam ? "active" : ""} ${blockerFound && t.late ? "blocker" : ""}" data-team="${i}">
+          <span class="ic">${t.ic}</span><b>${t.name}</b><small>${t.short}</small>
+        </button>`).join("");
+      const t = TEAMS[activeTeam];
+      document.getElementById("team-panel").innerHTML = `
+        <h3>${t.ic} ${t.name}</h3>
+        <p class="muted">${t.short}</p>
+        <h4>Their priorities</h4>${list(t.focus)}
+        <div class="tl">
+          ${tlRow("We need it", t.need, "tl-need")}
+          ${tlRow("They can do", t.have, `tl-have ${t.late ? "late" : ""}`)}
+          <div class="tl-axis"><span></span><div><span>wk 0</span><span>wk 4</span><span>wk 8</span></div></div>
+        </div>
+        <div class="ask">💬 ${t.ask}</div>`;
+    }
+    teamsEl.onclick = (e) => { const b = e.target.closest("[data-team]"); if (b) { activeTeam = +b.dataset.team; renderTeams(); } };
+    document.getElementById("blocker-btns").innerHTML = TEAMS.map((t, i) => `<button class="btn" data-blk="${i}">${t.ic} ${t.name}</button>`).join("");
+    document.getElementById("blocker-btns").onclick = (e) => {
+      const b = e.target.closest("[data-blk]"); if (!b) return;
+      const t = TEAMS[+b.dataset.blk], fb = document.getElementById("blocker-fb");
+      if (t.late) {
+        blockerFound = true; activeTeam = +b.dataset.blk;
+        fb.className = "fb good"; fb.textContent = "✓ Payments can't start until week 6, but Mobile needs the endpoint by week 3.";
+        document.getElementById("moves").classList.add("show");
+      } else {
+        fb.className = "fb bad"; fb.textContent = `✗ ${t.name} can deliver in time. Check each team's timeline.`;
+      }
+      renderTeams();
+    };
+    renderTeams();
+
+    /* ---------- Pipeline ---------- */
+    const STAGES = [
+      { e: "✍️", t: "Commit & PR", does: ["Code review", "Linting and static checks"], fails: ["Huge PRs nobody reviews well", "Reviews waiting for days"], ask: "How long do PRs wait for review?" },
+      { e: "🏗️", t: "Build", does: ["Compile and bundle", "Package an artifact (e.g. Docker image)"], fails: ["Slow builds block everyone", "Works on my machine"], ask: "How long does a build take?" },
+      { e: "🧪", t: "Test", does: ["Unit, integration, end-to-end tests", "Security scans"], fails: ["Flaky tests get ignored", "Low coverage on risky code"], ask: "Which tests are flaky, and who owns them?" },
+      { e: "🎭", t: "Staging", does: ["Production-like environment", "QA and demos"], fails: ["Staging data or config differs from prod", "Shared env queues"], ask: "How close is staging to production?" },
+      { e: "🚀", t: "Production", does: ["Deploy, often gradually", "Feature flags turn things on"], fails: ["No rollback plan", "Deploying on Friday evening"], ask: "How do we roll back, and how fast?" },
+      { e: "📈", t: "Monitor", does: ["Dashboards, logs, alerts", "SLOs tracked"], fails: ["No alert until users complain", "Alert fatigue"], ask: "How would we know it's broken?" },
+    ];
+    let activeStage = 0;
+    function renderPipe() {
+      document.getElementById("pipe").innerHTML = STAGES.map((s, i) =>
+        `<button class="stage ${i === activeStage ? "active" : ""}" data-st="${i}"><span class="e">${s.e}</span><span class="t">${s.t}</span></button>${i < STAGES.length - 1 ? '<span class="arrow">→</span>' : ""}`).join("");
+      const s = STAGES[activeStage];
+      document.getElementById("stage-panel").innerHTML = `
+        <h3>${s.e} ${s.t}</h3>
+        <div class="cols" style="margin-top:12px">
+          <div><h4>What happens</h4>${list(s.does)}</div>
+          <div><h4>What breaks</h4>${list(s.fails)}</div>
+          <div class="ask"><h4>💬 You ask</h4>${s.ask}</div>
+        </div>`;
+    }
+    document.getElementById("pipe").onclick = (e) => { const b = e.target.closest("[data-st]"); if (b) { activeStage = +b.dataset.st; renderPipe(); } };
+    renderPipe();
+
+    const WB = [
+      ["🖥️", "Client / server", "Browser or app talks to backend services."],
+      ["📄", "API contract", "The agreed request/response shape. Changes can break other teams."],
+      ["🗄️", "Database", "Source of truth. Schema changes need migrations."],
+      ["⚡", "Cache", "Fast copy of data. Stale data is the classic bug."],
+      ["📬", "Queue", "Work done later, asynchronously. Decouples services."],
+      ["🌍", "CDN", "Serves static files close to users."],
+      ["🧱", "Environments", "Dev → staging → production, each with its own config."],
+      ["🔑", "Auth", "Who you are (authentication) vs what you can do (authorization)."],
+    ];
+    document.getElementById("wb").innerHTML = WB.map(([e, t, d]) => `<div class="card"><span style="font-size:22px">${e}</span><b>${t}</b><p>${d}</p></div>`).join("");
+
+    /* ---------- Debt quadrant ---------- */
+    const QUADS = [
+      { k: "rd", t: "Reckless · Deliberate", q: "\"We don't have time for design.\"" },
+      { k: "pd", t: "Prudent · Deliberate", q: "\"Ship now, deal with it later.\"" },
+      { k: "ri", t: "Reckless · Inadvertent", q: "\"What's layering?\"" },
+      { k: "pi", t: "Prudent · Inadvertent", q: "\"Now we know how we should have done it.\"" },
+    ];
+    const EXAMPLES = [
+      ["Skipped tests to hit a demo, with a ticket to add them next sprint", "pd"],
+      ["Copy-pasted the same logic into 12 files because reviews are \"slow\"", "rd"],
+      ["Junior team stored passwords in plain text, unaware of hashing", "ri"],
+      ["After a year in production, the team sees a better data model", "pi"],
+    ];
+    let placedQ = EXAMPLES.map(() => null), selEx = null, debtChecked = false;
+    function renderDebt() {
+      document.getElementById("ex-list").innerHTML = EXAMPLES.map(([t, k], i) => {
+        const st = debtChecked && placedQ[i] ? (placedQ[i] === k ? "ok" : "no") : selEx === i ? "sel" : "";
+        const where = placedQ[i] ? ` <span class="tag ${st === "ok" ? "good" : st === "no" ? "bad" : ""}" style="${st ? "" : "background:var(--surface-2)"}">${QUADS.find((q) => q.k === placedQ[i]).t}</span>` : "";
+        return `<button class="ex ${st}" data-ex="${i}">${t}${where}</button>`;
+      }).join("");
+      document.getElementById("quad").innerHTML = `
+        <div></div><div class="ax">Reckless</div><div class="ax">Prudent</div>
+        <div class="ax">Deli&shy;berate</div>${["rd", "pd"].map(cell).join("")}
+        <div class="ax">Inad&shy;vertent</div>${["ri", "pi"].map(cell).join("")}`;
+    }
+    function cell(k) {
+      const q = QUADS.find((x) => x.k === k);
+      const n = placedQ.filter((p) => p === k).length;
+      return `<button class="qcell ${selEx !== null ? "ready" : ""}" data-q="${k}"><b>${q.t.split(" · ").reverse().join(" + ")}</b><span class="qq">${q.q}</span>
+        <span class="placed">${n ? `<span>${n} example${n > 1 ? "s" : ""} placed</span>` : ""}</span></button>`;
+    }
+    document.getElementById("debt").addEventListener("click", (e) => {
+      const ex = e.target.closest("[data-ex]"), q = e.target.closest("[data-q]");
+      if (ex) { const i = +ex.dataset.ex; selEx = selEx === i ? null : i; debtChecked = false; renderDebt(); }
+      else if (q && selEx !== null) { placedQ[selEx] = q.dataset.q; selEx = null; debtChecked = false; renderDebt(); }
+    });
+    document.getElementById("debt-check").onclick = () => {
+      debtChecked = true; selEx = null; renderDebt();
+      const right = placedQ.filter((p, i) => p === EXAMPLES[i][1]).length, fb = document.getElementById("debt-fb");
+      fb.className = `fb ${right === EXAMPLES.length ? "good" : "bad"}`;
+      fb.textContent = `${right} / ${EXAMPLES.length} correct${placedQ.includes(null) ? " · place them all" : ""}. Prudent + deliberate debt is a valid trade-off; reckless debt is the one to stop.`;
+    };
+    document.getElementById("debt-reset").onclick = () => {
+      placedQ = EXAMPLES.map(() => null); selEx = null; debtChecked = false;
+      document.getElementById("debt-fb").textContent = ""; renderDebt();
+    };
+    renderDebt();
+
+    const capEl = document.getElementById("cap");
+    function renderCap() {
+      const d = +capEl.value;
+      document.getElementById("cap-f").style.flexBasis = (100 - d) + "%";
+      document.getElementById("cap-d").style.flexBasis = d + "%";
+      document.getElementById("cap-f").textContent = `Features ${100 - d}%`;
+      document.getElementById("cap-d").textContent = d >= 10 ? `Debt ${d}%` : "";
+      document.getElementById("cap-msg").textContent =
+        d === 0 ? "⚠️ Zero: debt only grows, and velocity slowly drops." :
+        d <= 25 ? "✓ A steady, predictable share that stakeholders can plan around." :
+        "⚠️ Very high: make sure there's a clear payoff, or features stall.";
+    }
+    capEl.oninput = renderCap;
+    renderCap();
+
+    /* ---------- Release strategies ---------- */
+    const REL = [
+      { t: "💥 Big bang", on: 100, blast: 100, rollback: 25, cost: 15,
+        how: ["Everyone gets the change at once"], when: ["Tiny, low-risk changes", "Systems that can't run two versions"], risk: "If it breaks, it breaks for everyone." },
+      { t: "🐤 Canary", on: 5, blast: 15, rollback: 80, cost: 55,
+        how: ["Release to a small % of traffic first", "Widen gradually while metrics look healthy"], when: ["Backend and web changes", "When you have good monitoring"], risk: "Needs metrics to compare canary vs baseline." },
+      { t: "🔵🟢 Blue-green", on: 100, blast: 100, rollback: 95, cost: 70,
+        how: ["Two identical environments", "Switch traffic from blue to green", "Switch back to roll back"], when: ["Fast, clean rollback needed", "Infrastructure supports two stacks"], risk: "Database changes must work for both versions." },
+      { t: "🚩 Feature flags", on: 20, blast: 20, rollback: 100, cost: 45,
+        how: ["Code ships dark; a flag turns it on per user or group", "Turn off instantly without deploying"], when: ["Beta groups, gradual rollouts", "Decoupling deploy from release"], risk: "Old flags pile up as tech debt. Clean them up." },
+      { t: "🌑 Dark launch", on: 0, dark: 100, blast: 5, rollback: 90, cost: 60,
+        how: ["New code runs on real traffic", "Users don't see the results yet"], when: ["Testing performance and load", "Comparing a new service against the old one"], risk: "Real load on systems that aren't visible yet: watch costs." },
+    ];
+    let relActive = 1;
+    function renderRel() {
+      const r = REL[relActive];
+      document.getElementById("rel-tabs").innerHTML = REL.map((x, i) => `<button class="btn ${i === relActive ? "active" : ""}" data-rel="${i}">${x.t}</button>`).join("");
+      document.getElementById("users").innerHTML = Array.from({ length: 100 }, (_, i) =>
+        `<i class="${i < r.on ? "on" : r.dark && i < r.dark ? "dark" : ""}"></i>`).join("");
+      const m = (label, v, good) => `<div class="meter-row"><span>${label}</span><div class="meter"><i style="width:${v}%;background:${good ? (v >= 60 ? "var(--good)" : "var(--warn)") : (v >= 60 ? "var(--bad)" : "var(--good)")}"></i></div></div>`;
+      document.getElementById("rel-meters").innerHTML =
+        m("Blast radius", r.blast, false) + m("Rollback speed", r.rollback, true) + m("Setup effort", r.cost, false) +
+        `<p class="note" style="text-align:left;margin-top:8px">${r.dark ? "Faded dots: real traffic, results hidden from users." : "Purple dots: users who see the change."} Meters are relative, for comparison.</p>`;
+      document.getElementById("rel-panel").innerHTML = `
+        <h3>${r.t}</h3>
+        <h4 style="margin-top:12px">How it works</h4>${list(r.how)}
+        <h4 style="margin-top:12px">Use when</h4>${list(r.when)}
+        <div class="ask" style="margin-top:12px">⚠️ ${r.risk}</div>`;
+    }
+    document.getElementById("rel-tabs").onclick = (e) => { const b = e.target.closest("[data-rel]"); if (b) { relActive = +b.dataset.rel; renderRel(); } };
+    renderRel();
+
+    const INC = [
+      { t: "🔔 Detect", d: ["Alert fires or a user reports it", "Declare an incident early; it's cheap to downgrade"], ask: "Who's on call, and did the alert fire before customers noticed?" },
+      { t: "🎯 Triage", d: ["Assign a severity", "Name an incident commander"], ask: "What's the impact: how many users, which flows?" },
+      { t: "🩹 Mitigate", d: ["Stop the bleeding first: roll back, flip a flag, fail over", "Root cause can wait"], ask: "What's the fastest safe way to reduce impact?" },
+      { t: "✅ Resolve", d: ["Confirm metrics are back to normal", "Close the incident, post a final update"], ask: "Is it fixed, or only mitigated?" },
+      { t: "🔍 Postmortem", d: ["Blameless: focus on systems, not people", "Timeline, impact, contributing factors, action items with owners"], ask: "Which action items are scheduled, and who owns them?" },
+    ];
+    let incActive = 0;
+    function renderInc() {
+      document.getElementById("inc-flow").innerHTML = INC.map((s, i) => `<button class="inc-step ${i === incActive ? "active" : ""}" data-inc="${i}">${s.t}</button>`).join("");
+      const s = INC[incActive];
+      document.getElementById("inc-panel").innerHTML = `<div class="cols"><div><h4>${s.t}</h4>${list(s.d)}</div><div class="ask"><h4>💬 You ask</h4>${s.ask}</div></div>`;
+    }
+    document.getElementById("inc-flow").onclick = (e) => { const b = e.target.closest("[data-inc]"); if (b) { incActive = +b.dataset.inc; renderInc(); } };
+    renderInc();
+
+    /* ---------- Error budget ---------- */
+    const SLOS = [99, 99.5, 99.9, 99.95, 99.99], DAYS = [7, 28, 30, 90];
+    let slo = 99.9, days = 30;
+    const usedEl = document.getElementById("eb-used");
+    const fmt = (m) => m >= 120 ? `${(m / 60).toFixed(1)} h` : `${m.toFixed(m < 10 ? 2 : 1).replace(/\.0+$/, "")} min`;
+    function renderEb() {
+      document.getElementById("eb-slo").innerHTML = SLOS.map((s) => `<button class="btn ${s === slo ? "active" : ""}" data-slo="${s}">${s}%</button>`).join("");
+      document.getElementById("eb-days").innerHTML = DAYS.map((d) => `<button class="btn ${d === days ? "active" : ""}" data-days="${d}">${d}d</button>`).join("");
+      const budget = (1 - slo / 100) * days * 24 * 60;
+      const used = +usedEl.value;
+      document.getElementById("eb-used-v").textContent = `${used} min`;
+      const pct = Math.min(100, used / budget * 100), left = budget - used;
+      document.getElementById("eb-out").innerHTML = `
+        <div class="sub2">Allowed downtime at ${slo}% over ${days} days</div>
+        <div class="num">${fmt(budget)}</div>
+        <div class="burn"><i style="width:${pct}%;background:${pct >= 100 ? "var(--bad)" : pct >= 75 ? "var(--warn)" : "var(--good)"}"></i></div>
+        <div style="font-weight:700">${left > 0 ? `${fmt(left)} left (${(100 - pct).toFixed(0)}%)` : `Budget exhausted (${fmt(-left)} over)`}</div>
+        <div class="ask" style="margin-top:12px">${left > 0
+          ? (pct >= 75 ? "⚠️ Nearly spent: slow down risky launches." : "✓ Budget left: the team can take reasonable risks and ship.")
+          : "🛑 A typical error budget policy: freeze risky releases and focus on reliability until it recovers."}</div>
+        <p class="note" style="text-align:left">Formula: (1 − SLO) × window. Each extra nine cuts the budget by 10×.</p>`;
+    }
+    document.getElementById("reliability").addEventListener("click", (e) => {
+      const s = e.target.closest("[data-slo]"), d = e.target.closest("[data-days]");
+      if (s) { slo = +s.dataset.slo; renderEb(); }
+      if (d) { days = +d.dataset.days; renderEb(); }
+    });
+    usedEl.oninput = renderEb;
+    renderEb();
+
+    /* ---------- Try ---------- */
+    const QUIZ = [
+      { s: "🗄️ The team plans a database migration that needs 2 hours of downtime.",
+        o: ["Approve it if it's done at night", "Ask for a zero-downtime approach (expand → migrate → contract) or a rollback plan and a comms plan", "Tell them to skip the migration", "Ask the DBA to do it faster"],
+        a: 1, why: "Downtime is a business decision. Ask about zero-downtime patterns, rollback, and who must be told when." },
+      { s: "🔌 A third-party API we depend on limits us to 100 requests per minute.",
+        o: ["Ignore it until launch", "Ask what peak traffic will be, and whether we need caching, queuing or a higher tier", "Ask the vendor to remove the limit", "Switch vendors immediately"],
+        a: 1, why: "Compare expected peak load with the limit first, then decide between engineering fixes and a commercial upgrade." },
+      { s: "🧩 An engineer proposes splitting the monolith into 12 microservices.",
+        o: ["Approve it, microservices are modern", "Ask what problem it solves, the cost of running it, and whether an incremental path exists", "Reject it, monoliths are fine", "Ask for a 6-month freeze to do it"],
+        a: 1, why: "Architecture changes need a problem statement, trade-offs (ops cost, team skills) and an ADR. Incremental beats big rewrites." },
+      { s: "🧪 Flaky tests fail randomly and block the release pipeline.",
+        o: ["Disable the whole test suite", "Ask for the flaky tests to be quarantined with owners and a deadline, so real failures stay visible", "Re-run until it's green", "Release without the pipeline"],
+        a: 1, why: "Quarantine with ownership keeps the pipeline trustworthy. Endless re-runs hide real failures." },
+      { s: "🔐 A security review finds a high-severity issue 2 days before launch.",
+        o: ["Launch and fix later", "Ask about severity, exploitability and options: fix, mitigate, or delay. Let the risk owner decide with that data", "Hide it from stakeholders", "Cancel the project"],
+        a: 1, why: "Make the risk visible and get a documented decision from the accountable owner. Never quietly ship known high-risk issues." },
+      { s: "📉 Your SLO is 99.9% per 30 days (43.2 min budget). You've had 35 minutes of downtime. A risky release could add ~15 minutes.",
+        o: ["Ship it, we're still under budget", "Hold or de-risk it: release behind a flag or canary, or wait for the window to reset", "Lower the SLO to 99%", "Stop all releases forever"],
+        a: 1, why: "35 + 15 = 50 min > 43.2. The policy says protect reliability: shrink the blast radius or wait." },
+    ];
+    const shuffle = (n) => Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - 0.5);
+    let qi = 0, qres = [], answered = false, orders = QUIZ.map((q) => shuffle(q.o.length));
+    const quiz = document.getElementById("quiz");
+    function renderQuiz() {
+      const dots = QUIZ.map((_, i) => `<i class="${qres[i] === true ? "good" : qres[i] === false ? "bad" : ""}"></i>`).join("");
+      if (qi >= QUIZ.length) {
+        const score = qres.filter(Boolean).length;
+        quiz.innerHTML = `<div class="q-dots">${dots}</div><div class="q-sit">${score >= 5 ? "🏆" : "👍"} ${score} / ${QUIZ.length}</div>
+          <p class="center" style="color:var(--muted)">Notice the pattern: good TPM questions surface trade-offs and owners.</p>
+          <div class="q-next"><button class="btn primary" data-restart>Try again</button></div>`;
+        return;
+      }
+      const q = QUIZ[qi];
+      quiz.innerHTML = `<div class="q-dots">${dots}</div><div class="q-sit">${q.s}</div>
+        <div class="q-opts">${orders[qi].map((i) => `<button class="q-opt ${answered ? (i === q.a ? "ok" : qres[qi] === false && i === answered - 1 ? "no" : "") : ""}" data-opt="${i}">${q.o[i]}</button>`).join("")}</div>
+        <div class="q-why">${answered ? `<b>${qres[qi] ? "✓ Correct." : "✗ Not quite."}</b> ${q.why}` : `<span style="color:var(--muted)">Tip: the best answer usually asks about trade-offs, owners or rollback.</span>`}</div>
+        <div class="q-next">${answered ? `<button class="btn primary" data-next>${qi === QUIZ.length - 1 ? "See score" : "Next →"}</button>` : ""}</div>`;
+    }
+    quiz.onclick = (e) => {
+      const o = e.target.closest("[data-opt]");
+      if (o && !answered) { const i = +o.dataset.opt; qres[qi] = i === QUIZ[qi].a; answered = i + 1; renderQuiz(); }
+      if (e.target.closest("[data-next]")) { qi++; answered = false; renderQuiz(); }
+      if (e.target.closest("[data-restart]")) { qi = 0; qres = []; answered = false; orders = QUIZ.map((q) => shuffle(q.o.length)); renderQuiz(); }
+    };
+    renderQuiz();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"We need an ADR.\"", "Write down a significant technical decision: context, decision, consequences.", "Who reviews it, and which teams does the decision affect?"],
+      ["\"That's tech debt.\"", "A shortcut that makes future change slower or riskier.", "What does it cost us today, and what does paying it down unlock?"],
+      ["\"Ship it behind a feature flag.\"", "Deploy the code turned off, then enable it per user or group.", "Who controls the flag, and when do we remove it?"],
+      ["\"We burned the error budget.\"", "Downtime used up what the SLO allows for this window.", "What does our error budget policy say about new releases?"],
+      ["\"It's a Sev 1.\"", "The highest-severity incident: major customer impact, all hands.", "Who's the incident commander, and when's the next update?"],
+      ["\"Let's do a blameless postmortem.\"", "Review what happened, focusing on systems, not individuals.", "Which action items come out of it, with owners and dates?"],
+    ];
+    document.getElementById("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(11);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

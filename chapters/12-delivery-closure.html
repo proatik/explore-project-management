@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Delivery &amp; Closure · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .seg .btn { min-height: 44px; }
+    .seg .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .note { font-size: 13px; color: var(--muted); }
+    .msg { text-align: center; font-weight: 700; min-height: 1.6em; margin-top: 12px; }
+    .msg.good { color: var(--good); }
+    .msg.bad { color: var(--bad); }
+    .card h3 { margin: 0 0 10px; font-size: 17px; }
+    .card h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .stack { display: flex; flex-direction: column; gap: 16px; }
+    .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+
+    /* ---------- Explore: launch room ---------- */
+    .signals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .signals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .sig {
+      font: inherit; color: var(--text); text-align: left; cursor: pointer;
+      display: flex; flex-direction: column; gap: 6px; min-height: 128px;
+      padding: 14px; border-radius: var(--radius); border: 1.5px solid var(--line); background: var(--surface);
+      transition: border-color .2s, background .2s;
+    }
+    .sig .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sig .ico { font-size: 22px; }
+    .sig .name { font-weight: 800; font-size: 15px; }
+    .sig .detail { font-size: 13px; color: var(--muted); }
+    .sig .lamp { font-size: 11px; font-weight: 800; letter-spacing: .06em; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+    .sig.green { border-color: var(--good); }
+    .sig.green .lamp { background: var(--good-soft); color: var(--good); }
+    .sig.amber { border-color: var(--warn); }
+    .sig.amber .lamp { background: color-mix(in srgb, var(--warn) 18%, var(--surface)); color: var(--warn); }
+    .sig.red { border-color: var(--bad); }
+    .sig.red .lamp { background: var(--bad-soft); color: var(--bad); }
+    .decide { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 20px; }
+    .decide .seg .btn { min-width: 150px; }
+    .outcome { margin-top: 16px; min-height: 150px; }
+    .outcome.good { border-color: var(--good); }
+    .outcome.bad { border-color: var(--bad); }
+    .outcome .verdict { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+
+    /* ---------- Launch ---------- */
+    .bcn { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 700px) { .bcn { grid-template-columns: 1fr; } }
+    .bcn .card { border-top: 4px solid var(--line); }
+    .bcn .blocker { border-top-color: var(--bad); }
+    .bcn .cond { border-top-color: var(--warn); }
+    .bcn .noise { border-top-color: var(--good); }
+    .room { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    @media (max-width: 700px) { .room { grid-template-columns: 1fr; } }
+    .room .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .room .chips span { font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px; background: var(--surface-2); }
+    .room .tpm span { background: var(--accent-soft); color: var(--accent); }
+    .tab-body { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 700px) { .tab-body { grid-template-columns: 1fr; } }
+    .tab-body .ask { background: var(--accent-soft); border-radius: 12px; padding: 14px; }
+    .flow { display: flex; align-items: stretch; gap: 8px; }
+    .flow .stepc { flex: 1; text-align: center; padding: 14px 10px; border-radius: 14px; background: var(--surface-2); }
+    .flow .stepc .e { font-size: 24px; }
+    .flow .stepc .t { font-weight: 800; font-size: 14px; }
+    .flow .stepc .s { font-size: 12px; color: var(--muted); }
+    .flow .arrow { align-self: center; color: var(--muted); font-size: 18px; }
+    @media (max-width: 640px) { .flow { flex-direction: column; } .flow .arrow { transform: rotate(90deg); } }
+    .handover { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+    @media (max-width: 760px) { .handover { grid-template-columns: 1fr; } }
+    .tog-list { display: flex; flex-direction: column; gap: 8px; }
+    .tog {
+      font: inherit; color: var(--text); text-align: left; cursor: pointer; min-height: 48px;
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface);
+    }
+    .tog .box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; flex: none; font-size: 13px; }
+    .tog.on { border-color: var(--good); }
+    .tog.on .box { background: var(--good); border-color: var(--good); color: #fff; }
+    .tog small { display: block; color: var(--muted); font-size: 12px; }
+    .meter-card { display: flex; flex-direction: column; justify-content: center; gap: 10px; text-align: center; }
+    .gauge { height: 14px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+    .gauge i { display: block; height: 100%; width: 0; background: var(--bad); transition: width .4s, background .4s; }
+    .big { font-size: 40px; font-weight: 800; line-height: 1; }
+
+    /* ---------- Closure ---------- */
+    .admin { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .admin { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .admin .card { padding: 14px; }
+    .admin .e { font-size: 24px; }
+    .admin .t { font-weight: 800; margin: 4px 0 2px; }
+    .admin .s { font-size: 13px; color: var(--muted); }
+    .prince { margin-top: 16px; }
+    .prince ol { margin: 0; padding-left: 20px; }
+    .prince li { margin: 4px 0; }
+    .board { display: grid; gap: 12px; margin-top: 16px; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); }
+    @media (max-width: 640px) { .board { grid-template-columns: 1fr; } }
+    .board .col { background: var(--surface-2); border-radius: 14px; padding: 12px; min-height: 170px; }
+    .board .col h4 { margin: 0 0 4px; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--text); }
+    .board .col .hint2 { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .sticky {
+      font-size: 13px; padding: 10px; border-radius: 6px; margin-bottom: 8px;
+      background: color-mix(in srgb, var(--warn) 22%, var(--surface)); color: var(--text);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+    }
+    .prime { margin-top: 16px; text-align: center; padding: 24px; border-radius: var(--radius); background: linear-gradient(135deg, var(--accent-soft), var(--surface)); border: 1px solid var(--line); }
+    .prime blockquote { margin: 0 auto 8px; max-width: 680px; font-size: 18px; font-weight: 600; line-height: 1.55; }
+    .timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; position: relative; margin-top: 8px; }
+    @media (max-width: 640px) { .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .tl {
+      font: inherit; color: var(--text); cursor: pointer; text-align: center; min-height: 72px;
+      border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); padding: 10px;
+    }
+    .tl b { display: block; font-size: 15px; }
+    .tl span { font-size: 12px; color: var(--muted); }
+    .tl.active { border-color: var(--accent); background: var(--accent-soft); }
+    .tl-detail { margin-top: 14px; min-height: 92px; }
+
+    /* ---------- Try ---------- */
+    .chk-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 700px) { .chk-list { grid-template-columns: 1fr; } }
+    .chk {
+      font: inherit; color: var(--text); text-align: left; cursor: pointer; min-height: 64px;
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface);
+    }
+    .chk .flag { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: 15px; }
+    .chk .it { font-weight: 700; font-size: 14px; }
+    .chk .st { font-size: 13px; color: var(--muted); }
+    .chk.flagged { border-color: var(--accent); }
+    .chk.flagged .flag { background: var(--accent); color: #fff; }
+    .chk.ok { border-color: var(--good); background: var(--good-soft); }
+    .chk.no { border-color: var(--bad); background: var(--bad-soft); }
+    .chk.missed { border-color: var(--warn); border-style: dashed; }
+    .bar { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+    .bar .btn { min-height: 44px; }
+    .why-list { margin-top: 14px; }
+    .why-list li { margin: 6px 0; font-size: 14px; }
+    .tray { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 48px; margin-bottom: 14px; }
+    .note-chip {
+      font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; padding: 8px 14px; border-radius: 8px;
+      border: 1.5px solid transparent; background: color-mix(in srgb, var(--warn) 22%, var(--surface)); color: var(--text);
+    }
+    .note-chip.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .note-chip.ok { border-color: var(--good); }
+    .note-chip.no { border-color: var(--bad); }
+    .retro-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 640px) { .retro-cols { grid-template-columns: 1fr; } }
+    .rcol { border: 2px dashed var(--line); border-radius: 14px; padding: 12px; min-height: 150px; cursor: pointer; transition: border-color .2s, background .2s; }
+    .rcol.ready { border-color: var(--accent); background: var(--accent-soft); }
+    .rcol h4 { margin: 0 0 8px; font-size: 15px; }
+    .rcol .notes { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+    .actions { margin-top: 18px; display: none; }
+    .actions.show { display: block; }
+    .act-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .act-row:last-child { border-bottom: 0; }
+    .act-row .pick { font: inherit; font-weight: 600; min-height: 44px; flex: 1; text-align: left; cursor: pointer; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); }
+    .act-row .pick.on { border-color: var(--accent); background: var(--accent-soft); }
+    .act-row select { font: inherit; min-height: 44px; padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 12 Delivery &amp; Closure</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 12 · Delivery &amp; Closure</div>
+      <h1>Ship it.<br>Then finish it.</h1>
+      <p>Launch decisions, handover and closure. The end of a project is a process, not a party.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#learn">🚀 Launch</a>
+        <a href="#closure">📦 Closure</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Go or no-go?</h2>
+      <p class="sub">Launch is tomorrow. Tap each readiness signal to check it, then make the call.</p>
+
+      <div class="signals" id="signals"></div>
+      <div class="decide">
+        <div class="note" id="checked-count"></div>
+        <div class="seg" id="decision">
+          <button class="btn" data-d="go">🚀 Go</button>
+          <button class="btn" data-d="cond">⚠️ Go with conditions</button>
+          <button class="btn" data-d="nogo">✋ No-go</button>
+        </div>
+      </div>
+      <div class="card outcome" id="outcome"></div>
+    </section>
+
+    <!-- ================= LAUNCH ================= -->
+    <section class="section" id="learn">
+      <span class="step-label">🚀 Launch</span>
+      <h2>Decide, release, hand over</h2>
+      <p class="sub">Agree the go/no-go criteria before the meeting, not during it.</p>
+
+      <div class="bcn">
+        <div class="card blocker"><h3>🛑 Blocker</h3>
+          <ul class="bullets"><li>Stops the launch on its own</li><li>Open Sev-1 / Sev-2 defects</li><li>No tested rollback</li><li>Legal or security not approved</li></ul></div>
+        <div class="card cond"><h3>⚠️ Condition</h3>
+          <ul class="bullets"><li>Launch is OK if it's fixed by a date</li><li>Support training finishes day 2</li><li>Help-center article by end of week</li><li>Needs an owner and a deadline</li></ul></div>
+        <div class="card noise"><h3>🟢 Noise</h3>
+          <ul class="bullets"><li>Doesn't affect the decision</li><li>Cosmetic Sev-4 bugs</li><li>"Nice to have" polish</li><li>Logged to the backlog</li></ul></div>
+      </div>
+
+      <div class="room">
+        <div class="card"><h4>Decides</h4><div class="chips"><span>Sponsor</span><span>Product owner</span></div>
+          <p class="note" style="margin:10px 0 0">One named decision owner. Not a vote.</p></div>
+        <div class="card"><h4>Recommends</h4><div class="chips"><span>Eng lead</span><span>QA lead</span><span>SRE / Ops</span><span>Support</span><span>Security</span><span>Legal</span></div>
+          <p class="note" style="margin:10px 0 0">Each gives a clear go / no-go with evidence.</p></div>
+        <div class="card tpm"><h4>Facilitates</h4><div class="chips tpm"><span>TPM</span></div>
+          <p class="note" style="margin:10px 0 0">Runs the checklist, records the decision, conditions and owners.</p></div>
+      </div>
+
+      <h2 style="margin-top:40px">Release readiness</h2>
+      <p class="sub">Four things every launch needs. Tap each one.</p>
+      <div class="card">
+        <div class="seg" id="ready-tabs"></div>
+        <div class="tab-body" id="ready-body"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Acceptance &amp; sign-off</h2>
+      <p class="sub">"It works" (verified) is not the same as "the customer accepts it" (validated).</p>
+      <div class="card">
+        <div class="flow">
+          <div class="stepc"><div class="e">🧪</div><div class="t">QA</div><div class="s">Built right?</div></div><span class="arrow">→</span>
+          <div class="stepc"><div class="e">👥</div><div class="t">UAT</div><div class="s">Real users try it</div></div><span class="arrow">→</span>
+          <div class="stepc"><div class="e">✅</div><div class="t">Criteria met</div><div class="s">Against agreed acceptance criteria</div></div><span class="arrow">→</span>
+          <div class="stepc"><div class="e">✍️</div><div class="t">Sign-off</div><div class="s">Formal, written acceptance</div></div>
+        </div>
+        <div class="two" style="margin-top:16px">
+          <div><h4>Verification (control quality)</h4><ul class="bullets"><li>Internal: does it meet the spec?</li><li>Tests, reviews, inspections</li></ul></div>
+          <div><h4>Validation (validate scope)</h4><ul class="bullets"><li>Customer or sponsor formally accepts the deliverable</li><li>Get it in writing, with a date</li></ul></div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Handover to operations</h2>
+      <p class="sub">The project ends. The product doesn't. Tick what's ready and see if Ops would accept it.</p>
+      <div class="handover">
+        <div class="card"><div class="tog-list" id="handover"></div></div>
+        <div class="card meter-card">
+          <h4>Handover readiness</h4>
+          <div class="big" id="ho-pct">0%</div>
+          <div class="gauge"><i id="ho-bar"></i></div>
+          <div id="ho-verdict" style="font-weight:700;min-height:3em"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CLOSURE ================= -->
+    <section class="section" id="closure">
+      <span class="step-label">📦 Closure</span>
+      <h2>Close it properly</h2>
+      <p class="sub">Projects that just fade out leave open contracts, lost knowledge and nobody measuring benefits.</p>
+
+      <div class="admin">
+        <div class="card"><div class="e">📝</div><div class="t">Contracts</div><div class="s">Close vendor contracts, confirm deliverables received</div></div>
+        <div class="card"><div class="e">💰</div><div class="t">Budget</div><div class="s">Reconcile actuals, release unused reserves</div></div>
+        <div class="card"><div class="e">📊</div><div class="t">Final report</div><div class="s">Scope, time, cost and quality vs baseline</div></div>
+        <div class="card"><div class="e">🗄️</div><div class="t">Archive</div><div class="s">Decisions, docs and code where others can find them</div></div>
+        <div class="card"><div class="e">🔑</div><div class="t">Access</div><div class="s">Remove temporary accounts, keys and environments</div></div>
+        <div class="card"><div class="e">👋</div><div class="t">Release people</div><div class="s">Formally free the team for new work</div></div>
+        <div class="card"><div class="e">🎓</div><div class="t">Lessons</div><div class="s">Capture and share what to repeat and avoid</div></div>
+        <div class="card"><div class="e">🎉</div><div class="t">Celebrate</div><div class="s">Recognize people by name</div></div>
+      </div>
+
+      <div class="card prince">
+        <h4>PRINCE2 · Closing a Project</h4>
+        <ol>
+          <li>Prepare planned closure: confirm the products were accepted</li>
+          <li>Hand over products to operations and support</li>
+          <li>Evaluate the project: End Project Report and Lessons Report</li>
+          <li>Recommend closure to the Project Board</li>
+        </ol>
+        <p class="note" style="margin:10px 0 0">Benefits usually arrive after closure, so the Benefits Management Approach hands their review to the business.</p>
+      </div>
+
+      <h2 style="margin-top:40px">Retrospective vs lessons learned</h2>
+      <p class="sub">Same idea, different audience. Pick a retro format to see a sample board.</p>
+      <div class="two">
+        <div class="card"><h3>🔁 Retrospective</h3><ul class="bullets"><li><b>For:</b> the team</li><li><b>When:</b> every sprint or milestone</li><li><b>Goal:</b> improve how we work now</li><li><b>Output:</b> 1–3 actions with owners</li></ul></div>
+        <div class="card"><h3>🏛️ Lessons learned</h3><ul class="bullets"><li><b>For:</b> the organization</li><li><b>When:</b> throughout, and at phase or project end</li><li><b>Goal:</b> help future projects</li><li><b>Output:</b> lessons register or knowledge base</li></ul></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="seg" id="retro-tabs"></div>
+        <div class="board" id="retro-board"></div>
+      </div>
+
+      <div class="prime">
+        <div class="note" style="margin-bottom:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)">The Prime Directive</div>
+        <blockquote>"Regardless of what we discover, we understand and truly believe that everyone did the best job they could, given what they knew at the time, their skills and abilities, the resources available, and the situation at hand."</blockquote>
+        <div class="note">Norm Kerth, <i>Project Retrospectives</i> (2001). Read it at the start of every retro.</div>
+      </div>
+
+      <h2 style="margin-top:40px">Benefits realization</h2>
+      <p class="sub">You deliver outputs. The business wanted outcomes. Tap a point after launch.</p>
+      <div class="two">
+        <div class="card"><h3>📦 Output</h3><ul class="bullets"><li>What the project delivers</li><li>"A self-service password reset"</li><li>Done at launch</li></ul></div>
+        <div class="card"><h3>📈 Outcome</h3><ul class="bullets"><li>The change it causes</li><li>"Password tickets down 30% in 6 months"</li><li>Measured weeks or months later</li></ul></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="timeline" id="timeline"></div>
+        <div class="tl-detail" id="tl-detail"></div>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Is this project really done?</h2>
+      <p class="sub">The team says "we're done". Tap every item you'd flag as a gap, then check.</p>
+      <div class="chk-list" id="chk-list"></div>
+      <div class="bar">
+        <button class="btn primary" id="chk-check">Check my flags</button>
+        <button class="btn" id="chk-reset">Reset</button>
+      </div>
+      <div class="msg" id="chk-msg"></div>
+      <ul class="bullets why-list" id="chk-why"></ul>
+
+      <h2 style="margin-top:48px">Run a mini retro</h2>
+      <p class="sub">Tap a sticky note, then tap the column where it belongs. Then pick up to two actions.</p>
+      <div class="tray" id="tray"></div>
+      <div class="retro-cols" id="retro-cols"></div>
+      <div class="bar">
+        <button class="btn primary" id="retro-check">Check board</button>
+        <button class="btn" id="retro-reset">Reset</button>
+      </div>
+      <div class="msg" id="retro-msg"></div>
+      <div class="card actions" id="actions">
+        <h3>🎯 Retro actions</h3>
+        <p class="note" style="margin:0 0 6px">Pick up to two. Each needs an owner.</p>
+        <div id="act-list"></div>
+        <div class="msg" id="act-msg"></div>
+      </div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When the team says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>Go/no-go is a decision with criteria: <b>blockers</b> stop a launch, <b>conditions</b> need an owner and a date.</li>
+          <li><b>Done</b> means accepted, handed over and closed, not just deployed.</li>
+          <li>Measure <b>outcomes</b> after launch. Retros improve the team, lessons improve the organization.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const $ = id => document.getElementById(id);
+
+    /* ---------- Explore: launch room ---------- */
+    const SIGNALS = [
+      { ico: "🧪", name: "QA sign-off", s: "green", d: "Regression suite passed, signed by QA lead." },
+      { ico: "🐞", name: "Open defects", s: "red", d: "1 open Sev-1: payment fails for saved cards." },
+      { ico: "⚡", name: "Performance", s: "green", d: "Load test at 2× expected peak passed." },
+      { ico: "⏪", name: "Rollback plan", s: "amber", d: "Written, but only rehearsed in staging." },
+      { ico: "🎧", name: "Support trained", s: "amber", d: "Two of three shifts trained. Last one is day 2." },
+      { ico: "📣", name: "Launch comms", s: "green", d: "Customer email and release notes approved." },
+      { ico: "⚖️", name: "Legal &amp; compliance", s: "green", d: "Privacy review approved." },
+      { ico: "📟", name: "Monitoring", s: "red", d: "No alerts on the new payment service yet." },
+    ];
+    const LAMP = { green: "GREEN", amber: "AMBER", red: "RED" };
+    const OUTCOMES = {
+      go: { cls: "bad", v: "🔥 Launched with two blockers", pts: [
+        "Day 1: saved-card payments fail for some customers (Sev-1).",
+        "No alerts fire. Support hears about it from customers first.",
+        "Rollback was never rehearsed in production, so recovery is slow.",
+        "Lesson: red signals are blockers, not risks to accept quietly." ] },
+      cond: { cls: "bad", v: "⚠️ Conditions can't fix blockers", pts: [
+        "A Sev-1 and missing monitoring are blockers. A condition is something you can safely finish after launch.",
+        "The ambers (support training, rollback rehearsal) could be conditions, each with an owner and a date.",
+        "Fix the reds first, then go with conditions." ] },
+      nogo: { cls: "good", v: "✅ Right call: no-go, for now", pts: [
+        "Fix the Sev-1 and add alerts on the payment service.",
+        "Rehearse the rollback in production-like conditions.",
+        "Re-run go/no-go in 3 days. The ambers become conditions with owners.",
+        "Communicate the new date early, with the reason." ] },
+    };
+    const seen = new Set();
+    let decision = null;
+    function renderSignals() {
+      $("signals").innerHTML = SIGNALS.map((x, i) => {
+        const open = seen.has(i);
+        return `<button class="sig ${open ? x.s : ""}" data-sig="${i}">
+          <div class="top"><span class="ico">${x.ico}</span><span class="lamp">${open ? LAMP[x.s] : "TAP TO CHECK"}</span></div>
+          <div class="name">${x.name}</div>
+          <div class="detail">${open ? x.d : "Not checked yet"}</div></button>`;
+      }).join("");
+      $("checked-count").textContent = `${seen.size} of ${SIGNALS.length} signals checked`;
+    }
+    function renderOutcome() {
+      document.querySelectorAll("#decision .btn").forEach(b => b.classList.toggle("active", b.dataset.d === decision));
+      const box = $("outcome");
+      if (!decision) {
+        box.className = "card outcome";
+        box.innerHTML = `<div class="verdict">🤔 Waiting for your call</div><ul class="bullets"><li>Check the signals first.</li><li>Ask yourself: which reds are blockers, and which ambers could be conditions?</li></ul>`;
+        return;
+      }
+      const o = OUTCOMES[decision];
+      box.className = `card outcome ${o.cls}`;
+      box.innerHTML = `<div class="verdict">${o.v}</div><ul class="bullets">${o.pts.map(p => `<li>${p}</li>`).join("")}</ul>
+        ${seen.size < SIGNALS.length ? `<p class="note" style="margin:10px 0 0">You decided after checking ${seen.size} of ${SIGNALS.length} signals. Check everything before the call.</p>` : ""}
+        <p class="note" style="margin:8px 0 0">Illustrative scenario.</p>`;
+    }
+    $("signals").onclick = e => { const b = e.target.closest("[data-sig]"); if (b) { seen.add(+b.dataset.sig); renderSignals(); renderOutcome(); } };
+    $("decision").onclick = e => { const b = e.target.closest("[data-d]"); if (b) { decision = b.dataset.d; renderOutcome(); } };
+    renderSignals(); renderOutcome();
+
+    /* ---------- Launch: readiness tabs ---------- */
+    const READY = [
+      { tab: "📘 Runbook", what: ["Step-by-step launch plan with times and owners", "Pre-checks, deploy steps, smoke tests", "Who to call at each step"], ask: "Has someone other than the author walked through it?" },
+      { tab: "⏪ Rollback", what: ["How to undo the release, and how long it takes", "The trigger: which signal means roll back", "Data changes: can they be reversed?"], ask: "When did we last rehearse it, and who decides to pull the trigger?" },
+      { tab: "🩺 Hypercare", what: ["A period of extra support right after launch, often 1–4 weeks", "Project team on standby, faster triage, daily check-ins", "Clear exit criteria before normal support takes over"], ask: "What has to be true for hypercare to end?" },
+      { tab: "📣 Launch comms", what: ["Internal: support, sales, leadership know what changes and when", "External: customers, release notes, status page", "A message ready in case you roll back"], ask: "Who hears about it first, and from whom?" },
+    ];
+    let readyTab = 0;
+    function renderReady() {
+      $("ready-tabs").innerHTML = READY.map((r, i) => `<button class="btn ${i === readyTab ? "active" : ""}" data-r="${i}">${r.tab}</button>`).join("");
+      const r = READY[readyTab];
+      $("ready-body").innerHTML = `<div><h4>What it covers</h4><ul class="bullets">${r.what.map(w => `<li>${w}</li>`).join("")}</ul></div>
+        <div class="ask"><h4>💬 You ask</h4>${r.ask}</div>`;
+    }
+    $("ready-tabs").onclick = e => { const b = e.target.closest("[data-r]"); if (b) { readyTab = +b.dataset.r; renderReady(); } };
+    renderReady();
+
+    /* ---------- Launch: handover ---------- */
+    const HANDOVER = [
+      ["Runbook and architecture docs", "Where things live and how to operate them"],
+      ["Known issues list", "Open bugs and workarounds, with priorities"],
+      ["Knowledge transfer sessions", "Ops shadowed the team, then the reverse"],
+      ["Named owning team and on-call", "In the service catalog, on the rota"],
+      ["SLAs / SLOs agreed", "What 'working' means, and the targets"],
+      ["Support escalation path", "Who support calls when they're stuck"],
+    ];
+    const hoOn = new Set();
+    function renderHandover() {
+      $("handover").innerHTML = HANDOVER.map(([t, s], i) => `<button class="tog ${hoOn.has(i) ? "on" : ""}" data-h="${i}" aria-pressed="${hoOn.has(i)}">
+        <span class="box">${hoOn.has(i) ? "✓" : ""}</span><span>${t}<small>${s}</small></span></button>`).join("");
+      const pct = Math.round(hoOn.size / HANDOVER.length * 100);
+      $("ho-pct").textContent = pct + "%";
+      const bar = $("ho-bar");
+      bar.style.width = pct + "%";
+      bar.style.background = pct === 100 ? "var(--good)" : pct >= 50 ? "var(--warn)" : "var(--bad)";
+      $("ho-verdict").textContent = pct === 100 ? "✅ Ops can accept the handover."
+        : pct >= 50 ? "⚠️ Partial handover. Expect the project team to keep getting paged."
+        : "🛑 Not ready. Ops would refuse, or quietly inherit chaos.";
+    }
+    $("handover").onclick = e => { const b = e.target.closest("[data-h]"); if (b) { const i = +b.dataset.h; hoOn.has(i) ? hoOn.delete(i) : hoOn.add(i); renderHandover(); } };
+    renderHandover();
+
+    /* ---------- Closure: retro formats ---------- */
+    const RETROS = [
+      { tab: "▶️ Start / Stop / Continue", cols: [
+        ["🟢 Start", "Things to try", ["Rehearse rollback before every launch", "Involve support in sprint reviews"]],
+        ["🔴 Stop", "Things that hurt", ["Adding scope after code freeze", "Friday evening deploys"]],
+        ["🔵 Continue", "Things that worked", ["Weekly sponsor demo", "Daily 10-minute risk check"]] ] },
+      { tab: "💡 4Ls", cols: [
+        ["❤️ Liked", "What went well", ["Pairing on the data migration"]],
+        ["📚 Learned", "New knowledge", ["Load tests need production-like data"]],
+        ["🕳️ Lacked", "What was missing", ["A named owner for monitoring"]],
+        ["🌠 Longed for", "What we wished for", ["Earlier access to the payment sandbox"]] ] },
+      { tab: "⛵ Sailboat", cols: [
+        ["🌬️ Wind", "What pushed us forward", ["Clear charter and success metrics"]],
+        ["⚓ Anchors", "What slowed us down", ["Waiting 2 weeks for security review"]],
+        ["🪨 Rocks", "Risks ahead", ["Vendor contract renews in Q3"]],
+        ["🏝️ Island", "Our goal", ["Self-service for 80% of requests"]] ] },
+    ];
+    let retroTab = 0;
+    function renderRetro() {
+      $("retro-tabs").innerHTML = RETROS.map((r, i) => `<button class="btn ${i === retroTab ? "active" : ""}" data-rt="${i}">${r.tab}</button>`).join("");
+      const r = RETROS[retroTab];
+      const board = $("retro-board");
+      board.style.setProperty("--cols", r.cols.length);
+      board.innerHTML = r.cols.map(([h, hint, notes]) => `<div class="col"><h4>${h}</h4><div class="hint2">${hint}</div>
+        ${notes.map(n => `<div class="sticky">${n}</div>`).join("")}</div>`).join("");
+    }
+    $("retro-tabs").onclick = e => { const b = e.target.closest("[data-rt]"); if (b) { retroTab = +b.dataset.rt; renderRetro(); } };
+    renderRetro();
+
+    /* ---------- Closure: benefits timeline ---------- */
+    const TL = [
+      { t: "Launch", s: "Day 0", d: ["Output delivered: self-service reset is live.", "Baseline the metric now: password tickets per week.", "Nothing to celebrate on outcomes yet."] },
+      { t: "+30 days", s: "Hypercare ends", d: ["Early signal: adoption rate, error rate.", "Tickets may not drop yet while users discover the feature.", "Fix friction found in hypercare."] },
+      { t: "+90 days", s: "Project closed", d: ["Project is closed; the team has moved on.", "The benefits owner (business, not the PM) keeps measuring.", "Compare against the charter's success criteria."] },
+      { t: "+6 months", s: "Post-implementation review", d: ["Did tickets drop 30%? Report the real number.", "If not: why, and what's the next action?", "Feed findings into lessons learned."] },
+    ];
+    let tlSel = 0;
+    function renderTimeline() {
+      $("timeline").innerHTML = TL.map((x, i) => `<button class="tl ${i === tlSel ? "active" : ""}" data-tl="${i}"><b>${x.t}</b><span>${x.s}</span></button>`).join("");
+      $("tl-detail").innerHTML = `<ul class="bullets">${TL[tlSel].d.map(x => `<li>${x}</li>`).join("")}</ul>`;
+    }
+    $("timeline").onclick = e => { const b = e.target.closest("[data-tl]"); if (b) { tlSel = +b.dataset.tl; renderTimeline(); } };
+    renderTimeline();
+
+    /* ---------- Try: is it really done? ---------- */
+    const CHECK = [
+      { it: "Sponsor acceptance", st: "✔ Signed on 12 March", gap: false },
+      { it: "Runbook for support", st: "Draft in one engineer's personal notes", gap: true, why: "Runbooks must live where support can find and own them." },
+      { it: "Service ownership", st: "On-call owner: TBD", gap: true, why: "No owner means the project team keeps getting paged forever." },
+      { it: "Vendor contract", st: "Still billing monthly", gap: true, why: "Open contracts keep costing money after the project ends." },
+      { it: "Budget", st: "✔ Reconciled, final report sent", gap: false },
+      { it: "Lessons learned", st: "Retro held, notes never shared", gap: true, why: "Lessons nobody can find don't help the next project." },
+      { it: "Team", st: "✔ Released to new work on 1 April", gap: false },
+      { it: "Temporary access", st: "✔ Test accounts and keys removed", gap: false },
+      { it: "Benefits owner", st: "Nobody owns the 6-month review", gap: true, why: "Outcomes arrive after closure. Someone in the business must measure them." },
+      { it: "Documentation", st: "✔ Archived in the project space", gap: false },
+    ];
+    const flags = new Set();
+    let chkDone = false;
+    function renderCheck() {
+      $("chk-list").innerHTML = CHECK.map((c, i) => {
+        let cls = flags.has(i) ? "flagged" : "";
+        if (chkDone) cls = c.gap ? (flags.has(i) ? "ok" : "missed") : (flags.has(i) ? "no" : "");
+        return `<button class="chk ${cls}" data-c="${i}" aria-pressed="${flags.has(i)}"><span class="flag">${flags.has(i) ? "⚑" : ""}</span>
+          <span><span class="it">${c.it}</span><br><span class="st">${c.st}</span></span></button>`;
+      }).join("");
+      if (!chkDone) { $("chk-msg").textContent = ""; $("chk-msg").className = "msg"; $("chk-why").innerHTML = ""; }
+    }
+    $("chk-list").onclick = e => { const b = e.target.closest("[data-c]"); if (!b) return; const i = +b.dataset.c; flags.has(i) ? flags.delete(i) : flags.add(i); chkDone = false; renderCheck(); };
+    $("chk-check").onclick = () => {
+      chkDone = true; renderCheck();
+      const gaps = CHECK.filter(c => c.gap).length;
+      const found = CHECK.filter((c, i) => c.gap && flags.has(i)).length;
+      const wrong = CHECK.filter((c, i) => !c.gap && flags.has(i)).length;
+      $("chk-msg").className = `msg ${found === gaps && !wrong ? "good" : "bad"}`;
+      $("chk-msg").textContent = `${found === gaps && !wrong ? "🏆" : "👀"} Found ${found} of ${gaps} gaps${wrong ? ` · ${wrong} false alarm${wrong > 1 ? "s" : ""}` : ""}`;
+      $("chk-why").innerHTML = CHECK.filter(c => c.gap).map(c => `<li><b>${c.it}:</b> ${c.why}</li>`).join("");
+    };
+    $("chk-reset").onclick = () => { flags.clear(); chkDone = false; renderCheck(); };
+    renderCheck();
+
+    /* ---------- Try: mini retro ---------- */
+    const COLS = ["🟢 Start", "🔴 Stop", "🔵 Continue"];
+    const NOTES = [
+      ["Involve QA from the first sprint", 0], ["Rehearse rollback before launch", 0], ["Share a weekly risk summary", 0],
+      ["Adding scope after code freeze", 1], ["Deploying on Friday evenings", 1],
+      ["Weekly sponsor demos", 2], ["Pairing on tricky migrations", 2], ["Daily 10-minute standups", 2],
+    ];
+    const OWNERS = ["Choose owner", "TPM", "Eng lead", "QA lead", "Product owner"];
+    let placed, selected, retroChecked, order, picks;
+    function resetRetro() {
+      placed = NOTES.map(() => null); selected = null; retroChecked = false; picks = new Map();
+      order = NOTES.map((_, i) => i).sort(() => Math.random() - 0.5);
+      renderRetroTry();
+    }
+    function chip(i) {
+      const st = retroChecked ? (placed[i] === NOTES[i][1] ? "ok" : "no") : selected === i ? "sel" : "";
+      return `<button class="note-chip ${st}" data-n="${i}">${NOTES[i][0]}</button>`;
+    }
+    function renderRetroTry() {
+      const left = order.filter(i => placed[i] === null);
+      $("tray").innerHTML = left.length ? left.map(chip).join("") : `<span class="note" style="align-self:center">All notes placed. Check the board ↓</span>`;
+      $("retro-cols").innerHTML = COLS.map((c, k) => `<div class="rcol ${selected !== null ? "ready" : ""}" data-col="${k}"><h4>${c}</h4>
+        <div class="notes">${order.filter(i => placed[i] === k).map(chip).join("")}</div></div>`).join("");
+      if (!retroChecked) { $("retro-msg").textContent = ""; $("retro-msg").className = "msg"; }
+      renderActions();
+    }
+    function renderActions() {
+      const box = $("actions");
+      const allRight = retroChecked && placed.every((p, i) => p === NOTES[i][1]);
+      box.classList.toggle("show", allRight);
+      if (!allRight) return;
+      const cand = NOTES.map((n, i) => i).filter(i => NOTES[i][1] !== 2);
+      $("act-list").innerHTML = cand.map(i => `<div class="act-row">
+        <button class="pick ${picks.has(i) ? "on" : ""}" data-pick="${i}">${picks.has(i) ? "✓ " : ""}${NOTES[i][1] === 0 ? "Start: " : "Stop: "}${NOTES[i][0]}</button>
+        ${picks.has(i) ? `<select data-own="${i}" aria-label="Owner">${OWNERS.map((o, k) => `<option value="${k}" ${picks.get(i) === k ? "selected" : ""}>${o}</option>`).join("")}</select>` : ""}
+      </div>`).join("");
+      const owned = [...picks.values()].filter(v => v > 0).length;
+      const m = $("act-msg");
+      if (!picks.size) { m.className = "msg"; m.textContent = "Pick the one or two changes that matter most."; }
+      else if (owned < picks.size) { m.className = "msg bad"; m.textContent = "Every action needs an owner, or it won't happen."; }
+      else { m.className = "msg good"; m.textContent = `✅ ${picks.size} action${picks.size > 1 ? "s" : ""}, each with an owner. Review them at the next retro.`; }
+    }
+    $("try").addEventListener("click", e => {
+      const n = e.target.closest("[data-n]"), col = e.target.closest("[data-col]"), pk = e.target.closest("[data-pick]");
+      if (n) {
+        const i = +n.dataset.n; retroChecked = false;
+        if (placed[i] !== null && selected === null) placed[i] = null;
+        else selected = selected === i ? null : i;
+        renderRetroTry();
+      } else if (col && selected !== null) {
+        placed[selected] = +col.dataset.col; selected = null; retroChecked = false; renderRetroTry();
+      } else if (pk) {
+        const i = +pk.dataset.pick;
+        if (picks.has(i)) picks.delete(i);
+        else if (picks.size < 2) picks.set(i, 0);
+        else { $("act-msg").className = "msg bad"; $("act-msg").textContent = "Two is the limit. Fewer actions get done."; return; }
+        renderActions();
+      }
+    });
+    $("act-list").addEventListener("change", e => { const s = e.target.closest("[data-own]"); if (s) { picks.set(+s.dataset.own, +s.value); renderActions(); } });
+    $("retro-check").onclick = () => {
+      retroChecked = true; selected = null; renderRetroTry();
+      const right = placed.filter((p, i) => p === NOTES[i][1]).length, un = placed.filter(p => p === null).length;
+      $("retro-msg").className = `msg ${right === NOTES.length ? "good" : "bad"}`;
+      $("retro-msg").textContent = right === NOTES.length ? "🏆 Board sorted. Now choose your actions ↓"
+        : `👀 ${right} of ${NOTES.length} in the right column${un ? ` · ${un} not placed` : ""}`;
+    };
+    $("retro-reset").onclick = resetRetro;
+    resetRetro();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"We're in hypercare.\"", "The weeks right after launch with extra support and faster fixes.", "What are the exit criteria, and who takes over after?"],
+      ["\"Who signs off?\"", "Formal acceptance of the deliverable by the sponsor or customer.", "Is the acceptance written, against which criteria, and by when?"],
+      ["\"Let's do a retro.\"", "A team session to improve how we work.", "Which format, and how will we follow up on last time's actions?"],
+      ["\"Is it done-done?\"", "Not just coded: tested, accepted, deployed, documented, handed over.", "Which part of our definition of done is still open?"],
+      ["\"Hand it over to support.\"", "Operations takes ownership of the running product.", "Do they have the runbook, training, on-call and an escalation path?"],
+      ["\"Did we realize the benefits?\"", "Did the outcome in the business case actually happen?", "Who measures it after closure, and when is the review?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(12);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

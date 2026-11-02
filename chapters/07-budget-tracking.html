@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Budget & Tracking · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    :root { --s-pv: #2a78d6; --s-ac: #eb6834; --s-ev: #1baf7a; --s-grid: #e6e3da; }
+    @media (prefers-color-scheme: dark) {
+      :root { --s-pv: #3987e5; --s-ac: #d95926; --s-ev: #199e70; --s-grid: #2c2c35; }
+    }
+
+    /* ---------- Shared bits ---------- */
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .seg .btn { min-height: 44px; }
+    .seg .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .meter-row { margin: 12px 0; }
+    .meter-row .lbl { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+    .meter-row .lbl b { color: var(--text); }
+    .meter { height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+    .meter i { display: block; height: 100%; border-radius: 999px; transition: width .5s; }
+    .chip-s { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
+    .chip-s.good { background: var(--good-soft); color: var(--good); }
+    .chip-s.bad { background: var(--bad-soft); color: var(--bad); }
+    .chip-s.neutral { background: var(--surface-2); color: var(--muted); }
+    .note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    .card h3 { margin: 0 0 6px; }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+
+    /* ---------- Explore ---------- */
+    .ex-card { display: flex; flex-direction: column; }
+    .ex-card .looks { margin-top: auto; padding-top: 14px; }
+    #ex-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ghost-box { border: 1.5px dashed var(--line); border-radius: 14px; padding: 18px; color: var(--muted); text-align: center; display: grid; place-items: center; min-height: 160px; }
+    .ex-moral { text-align: center; font-size: 20px; font-weight: 800; margin-top: 20px; min-height: 30px; }
+    
+
+    /* ---------- Budget build-up ---------- */
+    .stack { display: flex; gap: 2px; height: 64px; border-radius: 14px; overflow: hidden; margin: 8px 0 4px; }
+    .stack button { font: inherit; border: 0; cursor: pointer; color: #fff; font-weight: 800; font-size: 14px; padding: 0 8px; min-width: 0; transition: filter .2s, box-shadow .2s; }
+    .stack button[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--text); }
+    .stack .s1 { background: var(--accent); }
+    .stack .s2 { background: color-mix(in srgb, var(--accent) 65%, var(--surface)); }
+    .stack .s3 { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--accent) 35%, var(--surface)) 0 8px, color-mix(in srgb, var(--accent) 22%, var(--surface)) 8px 16px); color: var(--text); }
+    .brackets { position: relative; height: 84px; }
+    .bracket { position: absolute; top: 6px; border: 2px solid var(--line); border-top: 0; height: 12px; border-radius: 0 0 8px 8px; }
+    .bracket span { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 13px; font-weight: 800; }
+    .bracket.b2 { top: 46px; }
+    .bracket.b2 span { top: 14px; }
+    .layer-panel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+    @media (max-width: 760px) { .layer-panel { grid-template-columns: 1fr; } }
+    .layer-panel h4, .ctype h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .layer-title { grid-column: 1 / -1; font-size: 20px; font-weight: 800; }
+    .ctypes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    @media (max-width: 700px) { .ctypes { grid-template-columns: 1fr; } }
+    .ctype .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .ctype .pair div { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+    .ctype .pair b { display: block; margin-bottom: 4px; }
+
+    /* ---------- EVM ---------- */
+    .evm { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 900px) { .evm { grid-template-columns: 1fr; } }
+    .ctrl label { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-top: 14px; }
+    .ctrl label span { color: var(--muted); font-weight: 600; }
+    .ctrl input[type=range] { width: 100%; height: 44px; accent-color: var(--accent); margin: 0; }
+    .ctrl .seg { justify-content: flex-start; }
+    .ctrl .seg .btn { padding: 8px 12px; font-size: 13px; }
+    .chart svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
+    .chart text { font-family: var(--font); }
+    .ch-legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 13px; color: var(--muted); margin-top: 8px; }
+    .ch-legend i { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+    .ch-legend i.dash { border-top-style: dashed; }
+    .readout { text-align: center; font-size: 14px; min-height: 22px; margin-top: 6px; }
+    .readout b { font-weight: 800; }
+    .chart-foot { display: flex; justify-content: center; margin-top: 8px; }
+    .tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+    .tbl th, .tbl td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+    .tbl th:first-child, .tbl td:first-child { text-align: left; }
+    .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    @media (max-width: 560px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+    .tile .k { font-size: 12px; font-weight: 800; letter-spacing: .08em; color: var(--muted); }
+    .tile .v { font-size: 24px; font-weight: 800; margin: 2px 0; }
+    .tile .f { font-size: 12px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
+    .tile .chip-s { margin-top: 8px; font-size: 12px; padding: 2px 10px; }
+    .evm-verdict { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+    /* ---------- Agile charts ---------- */
+    .ag-controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .ag-controls .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .ag-controls .btn { min-height: 44px; }
+    .burn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+    @media (max-width: 900px) { .burn { grid-template-columns: 1fr; } }
+    .burn svg, .cfd svg { max-width: 560px; margin: 0 auto; }
+    .burn .bullets, .cfd .bullets { font-size: 14px; margin-top: 10px; }
+    .cfd { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: center; margin-top: 16px; }
+    @media (max-width: 900px) { .cfd { grid-template-columns: 1fr; } }
+
+    /* ---------- Try: quizzes ---------- */
+    .quizzes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 1000px) { .quizzes { grid-template-columns: 1fr; } }
+    .quiz { text-align: center; display: flex; flex-direction: column; }
+    .quiz h3 { margin: 0 0 4px; }
+    .dots { display: flex; gap: 6px; justify-content: center; margin: 10px 0; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+    .dots i.good { background: var(--good); }
+    .dots i.bad { background: var(--bad); }
+    .q-text { font-size: 19px; font-weight: 800; min-height: 64px; display: grid; place-items: center; margin: 6px 0 14px; }
+    .q-data { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: -6px 0 14px; }
+    .q-data span { font-family: ui-monospace, Consolas, monospace; font-size: 14px; background: var(--surface-2); padding: 4px 10px; border-radius: 8px; }
+    .q-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .q-opts .btn { min-height: 52px; font-size: 15px; }
+    .q-opts .btn.right { background: var(--good-soft); border-color: var(--good); color: var(--good); }
+    .q-opts .btn.wrong { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+    .q-fb { min-height: 66px; margin-top: 14px; font-size: 14px; text-align: left; }
+    .q-fb.hint { color: var(--muted); text-align: center; }
+    .q-foot { margin-top: auto; padding-top: 10px; display: flex; justify-content: center; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+    .flip, .flip-inner { min-height: 200px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 07 Budget & Tracking</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 07 · Budget & Tracking</div>
+      <h1>Spend is not<br>progress.</h1>
+      <p>Budgets, earned value and burn charts: how to tell if a project is really on track.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#budget">💰 Budget</a>
+        <a href="#evm">📈 Earned Value</a>
+        <a href="#agile">📉 Burn Charts</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Are we on track?</h2>
+      <p class="sub">Week 6 of 10. The status report looks fine. Pick what the team really finished.</p>
+
+      <div class="two">
+        <div class="card ex-card">
+          <h3>📋 The status report</h3>
+          <div class="note" style="margin-top:0">Budget $100k · 10 weeks · illustrative</div>
+          <div class="meter-row">
+            <div class="lbl"><span>⏱️ Time elapsed</span><b>6 / 10 weeks · 60%</b></div>
+            <div class="meter"><i style="width:60%;background:var(--s-pv)"></i></div>
+          </div>
+          <div class="meter-row">
+            <div class="lbl"><span>💸 Budget spent</span><b>$60k / $100k · 60%</b></div>
+            <div class="meter"><i style="width:60%;background:var(--s-ac)"></i></div>
+          </div>
+          <div class="meter-row">
+            <div class="lbl"><span>✅ Work done</span><b id="ex-done-lbl">?</b></div>
+            <div class="meter"><i id="ex-done-bar" style="width:0%;background:var(--s-ev)"></i></div>
+          </div>
+          <div class="looks"><span class="chip-s neutral">🤔 60% time, 60% money… looks on track?</span></div>
+        </div>
+        <div class="card ex-card">
+          <h3>🔍 What did the team actually finish?</h3>
+          <div class="seg" id="ex-seg" style="margin:12px 0 16px">
+            <button class="btn" data-done="40">40% done</button>
+            <button class="btn" data-done="60">60% done</button>
+            <button class="btn" data-done="75">75% done</button>
+          </div>
+          <div id="ex-verdict"><div class="ghost-box">👆 Pick a reality above to reveal it</div></div>
+        </div>
+      </div>
+      <div class="ex-moral" id="ex-moral"></div>
+    </section>
+
+    <!-- ================= BUDGET ================= -->
+    <section class="section" id="budget">
+      <span class="step-label">💰 Learn</span>
+      <h2>How a budget is built</h2>
+      <p class="sub">Estimates, then reserves on top. Tap each layer. Numbers are illustrative.</p>
+
+      <div class="card">
+        <div class="stack" id="stack">
+          <button class="s1" data-l="0" style="flex:72">Estimates $72k</button>
+          <button class="s2" data-l="1" style="flex:8">+$8k</button>
+          <button class="s3" data-l="2" style="flex:10">+$10k</button>
+        </div>
+        <div class="brackets">
+          <div class="bracket" style="left:0;width:calc(80 / 90 * 100%)"><span>Cost baseline $80k</span></div>
+          <div class="bracket b2" style="left:0;width:100%"><span>Project budget $90k</span></div>
+        </div>
+        <div class="layer-panel" id="layer-panel"></div>
+      </div>
+
+      <h2 style="margin-top:40px">Kinds of cost you'll hear about</h2>
+      <p class="sub">Finance and engineering slice cost differently. Know both vocabularies.</p>
+      <div class="ctypes">
+        <div class="card ctype"><h4>Direct vs indirect</h4>
+          <div class="pair"><div><b>Direct</b>Team salaries on the project, licenses bought for it</div><div><b>Indirect</b>Office, HR, shared tooling, split across projects</div></div></div>
+        <div class="card ctype"><h4>Fixed vs variable</h4>
+          <div class="pair"><div><b>Fixed</b>Annual license, fixed-price vendor contract</div><div><b>Variable</b>Cloud usage, contractor hours, API calls</div></div></div>
+        <div class="card ctype"><h4>CapEx vs OpEx</h4>
+          <div class="pair"><div><b>CapEx</b>Building new software may be capitalized as an asset</div><div><b>OpEx</b>Maintenance, bug fixes, cloud running costs</div></div>
+          <div class="note">Capitalization rules depend on accounting standards. Ask finance which work counts.</div></div>
+        <div class="card ctype"><h4>People vs cloud</h4>
+          <div class="pair"><div><b>People</b>Often the largest line in software projects</div><div><b>Cloud</b>Grows with usage, so it can surprise you after launch</div></div>
+          <div class="note">Track cloud spend from day one with tags or budgets per project.</div></div>
+      </div>
+    </section>
+
+    <!-- ================= EVM ================= -->
+    <section class="section" id="evm">
+      <span class="step-label">📈 Learn</span>
+      <h2>Earned value: plan vs work vs spend</h2>
+      <p class="sub">Three numbers answer "are we on track?" Move the sliders or pick a preset. Tap the chart to read a week.</p>
+
+      <div class="evm">
+        <div class="card ctrl">
+          <h3>Status inputs</h3>
+          <div class="seg" id="presets">
+            <button class="btn" data-p="0">On plan</button>
+            <button class="btn" data-p="1">Behind &amp; over</button>
+            <button class="btn" data-p="2">Ahead &amp; under</button>
+            <button class="btn" data-p="3">Behind, under</button>
+          </div>
+          <label for="in-bac">Budget at completion (BAC) <span id="o-bac"></span></label>
+          <input type="range" id="in-bac" min="50" max="500" step="10" value="100">
+          <label for="in-wk">Status date <span id="o-wk"></span></label>
+          <input type="range" id="in-wk" min="1" max="9" step="1" value="6">
+          <label for="in-ev">Work actually complete <span id="o-ev"></span></label>
+          <input type="range" id="in-ev" min="0" max="100" step="1" value="45">
+          <label for="in-ac">Actual cost so far (AC) <span id="o-ac"></span></label>
+          <input type="range" id="in-ac" min="0" max="150" step="1" value="70">
+          <div class="note">PV comes from the plan's S-curve at the status date. EV = % complete × BAC.</div>
+        </div>
+        <div class="card chart">
+          <h3>The S-curve</h3>
+          <div id="scurve"></div>
+          <div class="ch-legend">
+            <span><i class="dash" style="border-color:var(--s-pv)"></i>PV · planned value</span>
+            <span><i style="border-color:var(--s-ev)"></i>EV · earned value</span>
+            <span><i style="border-color:var(--s-ac)"></i>AC · actual cost</span>
+          </div>
+          <div class="readout" id="readout">Tap the chart to read any week</div>
+          <div class="chart-foot"><button class="btn" id="tbl-toggle" aria-pressed="false">📋 Show as table</button></div>
+          <div id="tbl" hidden></div>
+        </div>
+      </div>
+      <div class="metrics" id="metrics"></div>
+      <div class="evm-verdict" id="evm-verdict"></div>
+      <ul class="bullets note" style="max-width:760px;margin:16px auto 0">
+        <li>Below 1.0 is bad for SPI and CPI. A trend over several periods matters more than one reading.</li>
+        <li>SPI drifts back to 1.0 near the end on late projects, since EV eventually reaches PV. Check the critical path too.</li>
+        <li>EAC has several formulas. BAC ÷ CPI assumes today's cost efficiency continues; AC + (BAC − EV) assumes the overrun was a one-off.</li>
+      </ul>
+    </section>
+
+    <!-- ================= AGILE ================= -->
+    <section class="section" id="agile">
+      <span class="step-label">📉 Learn</span>
+      <h2>Burndown, burn-up and flow</h2>
+      <p class="sub">Agile teams track the same question with story points. Change what happens in the sprint.</p>
+
+      <div class="ag-controls">
+        <button class="btn" id="ag-scope" aria-pressed="false">➕ Add 10 points on day 5</button>
+        <button class="btn" id="ag-block" aria-pressed="false">⏸️ Team blocked days 3–5</button>
+      </div>
+      <div class="burn">
+        <div class="card chart"><h3>📉 Burndown</h3><div id="bd"></div>
+          <div class="ch-legend"><span><i style="border-color:var(--s-pv)"></i>Remaining</span><span><i class="dash" style="border-color:var(--muted)"></i>Ideal</span></div>
+          <ul class="bullets" id="bd-notes"></ul></div>
+        <div class="card chart"><h3>📊 Burn-up</h3><div id="bu"></div>
+          <div class="ch-legend"><span><i style="border-color:var(--s-ev)"></i>Done</span><span><i style="border-color:var(--s-ac)"></i>Scope</span></div>
+          <ul class="bullets" id="bu-notes"></ul></div>
+      </div>
+
+      <div class="card cfd">
+        <div class="chart">
+          <h3>🌊 Cumulative flow diagram</h3>
+          <div id="cfd"></div>
+          <div class="ch-legend"><span><i style="border-color:var(--s-pv)"></i>To do</span><span><i style="border-color:var(--s-ac)"></i>In progress</span><span><i style="border-color:var(--s-ev)"></i>Done</span></div>
+        </div>
+        <div>
+          <div class="seg" id="cfd-seg">
+            <button class="btn" data-c="0" aria-pressed="true">Healthy flow</button>
+            <button class="btn" data-c="1" aria-pressed="false">Bottleneck</button>
+          </div>
+          <ul class="bullets" id="cfd-notes"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Read the status</h2>
+      <p class="sub">Two quick drills. Answer, read why, then go to the next one.</p>
+      <div class="quizzes">
+        <div class="card quiz" id="quiz-evm"></div>
+        <div class="card quiz" id="quiz-chart"></div>
+      </div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When someone says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>Time elapsed and money spent don't measure progress. Only <b>work done (EV)</b> tells you where you really are.</li>
+          <li><b>SPI</b> and <b>CPI</b> below 1.0 mean behind and over. Watch the <b>trend</b>, not one reading.</li>
+          <li>A <b>burn-up</b> shows scope change; a burndown hides it.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const $ = (id) => document.getElementById(id);
+    const k = (v) => `${v < 0 ? "−" : ""}$${Math.abs(v).toFixed(Math.abs(v) >= 100 ? 0 : 1).replace(/\.0$/, "")}k`;
+    const fx = (v) => (isFinite(v) ? v.toFixed(2) : "—");
+    const S = (x) => x * x * (3 - 2 * x);
+
+    /* ---------- Explore ---------- */
+    const REAL = {
+      40: { title: "😬 Behind and over budget", tags: [["Behind schedule", false], ["Over budget", false]],
+        pts: ["Planned 60% of the work by now, delivered 40%", "Paid $60k for $40k worth of work", "At this rate the project costs ~$150k"] },
+      60: { title: "🙂 Genuinely on track", tags: [["On schedule", true], ["On budget", true]],
+        pts: ["Work done matches the plan", "Every dollar bought a dollar of planned work", "Now the report is telling the truth"] },
+      75: { title: "🚀 Ahead and under budget", tags: [["Ahead of schedule", true], ["Under budget", true]],
+        pts: ["75% done when the plan said 60%", "$75k of work for $60k spent", "Good news the spend-only report hid"] },
+    };
+    $("ex-seg").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-done]");
+      if (!b) return;
+      const d = +b.dataset.done, r = REAL[d];
+      [...$("ex-seg").children].forEach((x) => x.setAttribute("aria-pressed", x === b));
+      $("ex-done-bar").style.width = d + "%";
+      $("ex-done-lbl").textContent = `$${d}k of work · ${d}%`;
+      $("ex-verdict").innerHTML = `
+        <h3>${r.title}</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px">${r.tags.map(([t, ok]) =>
+          `<span class="chip-s ${ok ? "good" : "bad"}">${ok ? "✓" : "✗"} ${t}</span>`).join("")}</div>
+        <ul class="bullets">${r.pts.map((p) => `<li>${p}</li>`).join("")}</ul>`;
+      $("ex-moral").textContent = "💬 Same status report, three different realities.";
+    });
+
+    /* ---------- Budget layers ---------- */
+    const LAYERS = [
+      { t: "🧱 Cost estimates · $72k", what: ["Bottom-up estimates of every work package", "People, licenses, cloud, vendors"],
+        who: ["PM builds it with the team"], when: ["Spent as planned work happens"] },
+      { t: "🛟 Contingency reserve · $8k", what: ["Money for identified risks: known unknowns", "Sized from the risk register, e.g. EMV"],
+        who: ["PM manages it, inside the cost baseline"], when: ["When a planned-for risk actually happens"] },
+      { t: "🏦 Management reserve · $10k", what: ["Money for unknown unknowns", "Outside the cost baseline"],
+        who: ["Sponsor or management controls it"], when: ["Released by approval, then the baseline changes"] },
+    ];
+    let layer = 0;
+    function renderLayer() {
+      [...$("stack").children].forEach((b, i) => b.setAttribute("aria-pressed", i === layer));
+      const l = LAYERS[layer], ul = (a) => `<ul class="bullets">${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+      $("layer-panel").innerHTML = `<div class="layer-title">${l.t}</div>
+        <div><h4>What it covers</h4>${ul(l.what)}</div><div><h4>Who controls it</h4>${ul(l.who)}</div><div><h4>When it's used</h4>${ul(l.when)}</div>`;
+    }
+    $("stack").addEventListener("click", (e) => { const b = e.target.closest("[data-l]"); if (b) { layer = +b.dataset.l; renderLayer(); } });
+    renderLayer();
+
+    /* ---------- EVM calculator + S-curve ---------- */
+    const PRESETS = [
+      { bac: 100, wk: 6, ev: 65, ac: 65 },
+      { bac: 100, wk: 6, ev: 45, ac: 70 },
+      { bac: 100, wk: 6, ev: 75, ac: 62 },
+      { bac: 100, wk: 6, ev: 50, ac: 42 },
+    ];
+    const inp = { bac: $("in-bac"), wk: $("in-wk"), ev: $("in-ev"), ac: $("in-ac") };
+    let showTable = false, readWeek = null;
+
+    function evmState() {
+      const BAC = +inp.bac.value, wk = +inp.wk.value;
+      inp.ac.max = Math.round(BAC * 1.5);
+      const AC = +inp.ac.value, EV = BAC * (+inp.ev.value) / 100, PV = BAC * S(wk / 10);
+      const SV = EV - PV, CV = EV - AC, SPI = EV / PV, CPI = AC ? EV / AC : NaN;
+      const EAC = AC ? BAC / CPI : NaN, EACa = AC + (BAC - EV), ETC = EAC - AC, VAC = BAC - EAC;
+      const TCPI = BAC - AC > 0 ? (BAC - EV) / (BAC - AC) : NaN;
+      return { BAC, wk, AC, EV, PV, SV, CV, SPI, CPI, EAC, EACa, ETC, VAC, TCPI };
+    }
+
+    function axes(W, H, P, xMax, yMax, xs, ys, xLbl, yFmt) {
+      const X = (x) => P.l + (x / xMax) * (W - P.l - P.r), Y = (y) => H - P.b - (y / yMax) * (H - P.t - P.b);
+      let s = ys.map((y) => `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--s-grid)" stroke-width="1"/>
+        <text x="${P.l - 8}" y="${Y(y) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${yFmt(y)}</text>`).join("");
+      s += xs.map((x) => `<text x="${X(x)}" y="${H - P.b + 18}" text-anchor="middle" font-size="12" fill="var(--muted)">${x}</text>`).join("");
+      s += `<line x1="${P.l}" x2="${W - P.r}" y1="${H - P.b}" y2="${H - P.b}" stroke="var(--muted)" stroke-width="1"/>
+        <text x="${(P.l + W - P.r) / 2}" y="${H - 4}" text-anchor="middle" font-size="12" fill="var(--muted)">${xLbl}</text>`;
+      return { s, X, Y };
+    }
+    const path = (pts, X, Y) => pts.map(([x, y], i) => `${i ? "L" : "M"}${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join("");
+    const niceMax = (v) => { const step = v > 300 ? 100 : v > 120 ? 50 : 20; return Math.ceil(v / step) * step; };
+    const ticks = (max) => { const n = 4; return Array.from({ length: n + 1 }, (_, i) => Math.round((max / n) * i)); };
+
+    function renderEVM() {
+      const s = evmState();
+      $("o-bac").textContent = k(s.BAC);
+      $("o-wk").textContent = `week ${s.wk} of 10`;
+      $("o-ev").textContent = `${inp.ev.value}% · EV ${k(s.EV)}`;
+      $("o-ac").textContent = k(s.AC);
+
+      const W = 640, H = 300, P = { t: 18, r: 90, b: 40, l: 52 };
+      const yMax = niceMax(Math.max(s.BAC, isFinite(s.EAC) ? s.EAC : 0, s.AC) * 1.08);
+      const a = axes(W, H, P, 10, yMax, [0, 2, 4, 6, 8, 10], ticks(yMax), "Week", (v) => `$${v}k`);
+      const pvPts = Array.from({ length: 41 }, (_, i) => [i / 4, s.BAC * S(i / 40)]);
+      const f = S(s.wk / 10);
+      const upTo = pvPts.filter(([x]) => x <= s.wk);
+      const evPts = upTo.map(([x]) => [x, f ? s.EV * S(x / 10) / f : 0]);
+      const acPts = upTo.map(([x]) => [x, f ? s.AC * S(x / 10) / f : 0]);
+      const proj = isFinite(s.EAC) ? `<path d="${path([[s.wk, s.AC], [10, s.EAC]], a.X, a.Y)}" stroke="var(--s-ac)" stroke-width="2" stroke-dasharray="2 5" fill="none" stroke-linecap="round"/>
+        <circle cx="${a.X(10)}" cy="${a.Y(s.EAC)}" r="4" fill="var(--s-ac)" stroke="var(--surface)" stroke-width="2"/>
+        <text x="${a.X(10) + 8}" y="${a.Y(s.EAC) + 4}" font-size="12" font-weight="700" fill="var(--text)">EAC ${k(s.EAC)}</text>` : "";
+      const lbl = (x, y, t, dy = 0) => `<text x="${a.X(x) + 8}" y="${a.Y(y) + 4 + dy}" font-size="12" font-weight="700" fill="var(--text)">${t}</text>`;
+      const dEV = s.EV > s.AC ? -8 : 10, dAC = s.EV > s.AC ? 10 : -8;
+      const rw = readWeek == null ? "" : `<line x1="${a.X(readWeek)}" x2="${a.X(readWeek)}" y1="${P.t}" y2="${H - P.b}" stroke="var(--muted)" stroke-width="1"/>`;
+      $("scurve").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="S-curve of planned value, earned value and actual cost by week">
+        ${a.s}
+        <line x1="${P.l}" x2="${W - P.r}" y1="${a.Y(s.BAC)}" y2="${a.Y(s.BAC)}" stroke="var(--muted)" stroke-dasharray="6 6" stroke-width="1"/>
+        <text x="${P.l + 6}" y="${a.Y(s.BAC) - 6}" font-size="12" fill="var(--muted)">BAC ${k(s.BAC)}</text>
+        <line x1="${a.X(s.wk)}" x2="${a.X(s.wk)}" y1="${P.t}" y2="${H - P.b}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="${a.X(s.wk)}" y="${P.t - 4}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">Today · wk ${s.wk}</text>
+        ${rw}
+        <path d="${path(pvPts, a.X, a.Y)}" stroke="var(--s-pv)" stroke-width="2" stroke-dasharray="7 5" fill="none"/>
+        <path d="${path(acPts, a.X, a.Y)}" stroke="var(--s-ac)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+        <path d="${path(evPts, a.X, a.Y)}" stroke="var(--s-ev)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+        ${proj}
+        ${[[s.PV, "var(--s-pv)"], [s.AC, "var(--s-ac)"], [s.EV, "var(--s-ev)"]].map(([v, c]) =>
+          `<circle cx="${a.X(s.wk)}" cy="${a.Y(v)}" r="5" fill="${c}" stroke="var(--surface)" stroke-width="2"/>`).join("")}
+        ${lbl(s.wk, s.EV, `EV ${k(s.EV)}`, dEV)}${lbl(s.wk, s.AC, `AC ${k(s.AC)}`, dAC)}
+        <text x="${a.X(s.wk) - 8}" y="${a.Y(s.PV) - 8}" text-anchor="end" font-size="12" font-weight="700" fill="var(--text)">PV ${k(s.PV)}</text>
+        <rect x="${P.l}" y="${P.t}" width="${W - P.l - P.r}" height="${H - P.t - P.b}" fill="transparent" id="hit"/>
+      </svg>`;
+      $("hit").addEventListener("pointerdown", (e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        readWeek = Math.max(0, Math.min(10, Math.round(((e.clientX - r.left) / r.width) * 10)));
+        renderEVM();
+      });
+      const at = (w) => {
+        const pv = s.BAC * S(w / 10), ev = w <= s.wk && f ? s.EV * S(w / 10) / f : null, ac = w <= s.wk && f ? s.AC * S(w / 10) / f : null;
+        return { pv, ev, ac };
+      };
+      if (readWeek != null) {
+        const r = at(readWeek);
+        $("readout").innerHTML = `<b>Week ${readWeek}</b> · PV ${k(r.pv)} · EV ${r.ev == null ? "not yet" : k(r.ev)} · AC ${r.ac == null ? "not yet" : k(r.ac)}`;
+      }
+      if (showTable) {
+        $("tbl").innerHTML = `<table class="tbl"><thead><tr><th>Week</th><th>PV</th><th>EV</th><th>AC</th></tr></thead><tbody>${
+          Array.from({ length: 11 }, (_, w) => { const r = at(w); return `<tr><td>${w}</td><td>${k(r.pv)}</td><td>${r.ev == null ? "–" : k(r.ev)}</td><td>${r.ac == null ? "–" : k(r.ac)}</td></tr>`; }).join("")}</tbody></table>`;
+      }
+
+      const st = (v, goodIfPos, words, tol = 0.005) => {
+        if (!isFinite(v)) return `<span class="chip-s neutral">● n/a</span>`;
+        const z = Math.abs(v) < tol;
+        return z ? `<span class="chip-s neutral">● ${words[2]}</span>`
+          : (v > 0) === goodIfPos ? `<span class="chip-s good">▲ ${words[0]}</span>` : `<span class="chip-s bad">▼ ${words[1]}</span>`;
+      };
+      const tcpiChip = !isFinite(s.TCPI) ? `<span class="chip-s bad">✗ Budget already spent</span>`
+        : s.TCPI <= 1 ? `<span class="chip-s good">✓ Achievable</span>`
+        : s.TCPI <= 1.1 ? `<span class="chip-s neutral">● Tighter than now</span>` : `<span class="chip-s bad">▼ Very hard</span>`;
+      const T = [
+        ["SV", k(s.SV), "EV − PV", st(s.SV, true, ["Ahead", "Behind", "On plan"], s.BAC * 0.005)],
+        ["CV", k(s.CV), "EV − AC", st(s.CV, true, ["Under budget", "Over budget", "On budget"], s.BAC * 0.005)],
+        ["SPI", fx(s.SPI), "EV ÷ PV", st(s.SPI - 1, true, ["Ahead", "Behind", "On plan"])],
+        ["CPI", fx(s.CPI), "EV ÷ AC", st(s.CPI - 1, true, ["Efficient", "Overspending", "On budget"])],
+        ["EAC", isFinite(s.EAC) ? k(s.EAC) : "—", "BAC ÷ CPI", st(s.BAC - s.EAC, true, ["Below BAC", "Above BAC", "= BAC"], s.BAC * 0.005)],
+        ["EAC (one-off)", k(s.EACa), "AC + (BAC − EV)", st(s.BAC - s.EACa, true, ["Below BAC", "Above BAC", "= BAC"], s.BAC * 0.005)],
+        ["ETC", isFinite(s.ETC) ? k(s.ETC) : "—", "EAC − AC", `<span class="chip-s neutral">● Still to spend</span>`],
+        ["VAC", isFinite(s.VAC) ? k(s.VAC) : "—", "BAC − EAC", st(s.VAC, true, ["Surplus", "Overrun", "Even"], s.BAC * 0.005)],
+        ["TCPI", fx(s.TCPI), "(BAC − EV) ÷ (BAC − AC)", tcpiChip],
+      ];
+      $("metrics").innerHTML = T.map(([key, v, f2, chip]) =>
+        `<div class="tile"><div class="k">${key}</div><div class="v">${v}</div><div class="f">${f2}</div>${chip}</div>`).join("");
+      const onS = s.SPI >= 0.995, onC = s.CPI >= 0.995;
+      const sch = onS ? "on or ahead of schedule" : "behind schedule", cost = onC ? "on or under budget" : "over budget";
+      $("evm-verdict").innerHTML = `<span class="chip-s ${onS ? "good" : "bad"}">${onS ? "✓" : "✗"} ${sch}</span>
+        <span class="chip-s ${onC ? "good" : "bad"}">${onC ? "✓" : "✗"} ${cost}</span>`;
+    }
+    Object.values(inp).forEach((el) => el.addEventListener("input", () => {
+      [...$("presets").children].forEach((b) => b.setAttribute("aria-pressed", "false"));
+      renderEVM();
+    }));
+    $("presets").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-p]");
+      if (!b) return;
+      const p = PRESETS[+b.dataset.p];
+      inp.bac.value = p.bac; inp.wk.value = p.wk; inp.ev.value = p.ev; inp.ac.max = Math.round(p.bac * 1.5); inp.ac.value = p.ac;
+      [...$("presets").children].forEach((x) => x.setAttribute("aria-pressed", x === b));
+      readWeek = null;
+      $("readout").textContent = "Tap the chart to read any week";
+      renderEVM();
+    });
+    $("tbl-toggle").addEventListener("click", () => {
+      showTable = !showTable;
+      $("tbl").hidden = !showTable;
+      $("tbl-toggle").setAttribute("aria-pressed", showTable);
+      $("tbl-toggle").textContent = showTable ? "📋 Hide table" : "📋 Show as table";
+      renderEVM();
+    });
+    $("presets").children[1].setAttribute("aria-pressed", "true");
+    renderEVM();
+
+    /* ---------- Burndown / burn-up ---------- */
+    const BASE = [3, 4, 3, 4, 4, 4, 4, 4, 4, 4];
+    let addScope = false, blocked = false;
+    function sprint() {
+      let done = 0;
+      return Array.from({ length: 11 }, (_, d) => {
+        if (d > 0) done += blocked && d >= 3 && d <= 5 ? 0 : BASE[d - 1];
+        return { d, done, scope: addScope && d >= 5 ? 50 : 40 };
+      });
+    }
+    function burnCharts() {
+      const data = sprint(), W = 480, H = 260, P = { t: 16, r: 80, b: 40, l: 40 };
+      const yMax = 60;
+      const a = axes(W, H, P, 10, yMax, [0, 2, 4, 6, 8, 10], [0, 20, 40, 60], "Sprint day", (v) => v);
+      const rem = data.map((p) => [p.d, p.scope - p.done]), last = data[10];
+      const gap = a.Y(last.done) - a.Y(last.scope), sep = gap < 16 ? (16 - gap) / 2 : 0;
+      $("bd").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Burndown of remaining points by day">${a.s}
+        <path d="${path([[0, 40], [10, 0]], a.X, a.Y)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="6 5" fill="none"/>
+        <path d="${path(rem, a.X, a.Y)}" stroke="var(--s-pv)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+        ${rem.map(([x, y]) => `<circle cx="${a.X(x)}" cy="${a.Y(y)}" r="4" fill="var(--s-pv)" stroke="var(--surface)" stroke-width="2"/>`).join("")}
+        <text x="${a.X(10) + 8}" y="${a.Y(last.scope - last.done) + 4}" font-size="12" font-weight="700" fill="var(--text)">${last.scope - last.done} left</text></svg>`;
+      $("bu").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Burn-up of done points and total scope by day">${a.s}
+        <path d="${path(data.flatMap((p, i) => i && p.scope !== data[i - 1].scope ? [[p.d, data[i - 1].scope], [p.d, p.scope]] : [[p.d, p.scope]]), a.X, a.Y)}" stroke="var(--s-ac)" stroke-width="2.5" fill="none"/>
+        <path d="${path(data.map((p) => [p.d, p.done]), a.X, a.Y)}" stroke="var(--s-ev)" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+        ${data.map((p) => `<circle cx="${a.X(p.d)}" cy="${a.Y(p.done)}" r="4" fill="var(--s-ev)" stroke="var(--surface)" stroke-width="2"/>`).join("")}
+        <text x="${a.X(10) + 8}" y="${a.Y(last.scope) + 4 - sep}" font-size="12" font-weight="700" fill="var(--text)">Scope ${last.scope}</text>
+        <text x="${a.X(10) + 8}" y="${a.Y(last.done) + 4 + sep}" font-size="12" font-weight="700" fill="var(--text)">Done ${last.done}</text></svg>`;
+      const bd = [], bu = [];
+      if (!addScope && !blocked) { bd.push("Tracks close to the ideal line", "38 of 40 points done, 2 roll over"); bu.push("Done climbs steadily toward a flat scope line", "Same story, told as progress"); }
+      if (blocked) { bd.push("Flat days 3–5: nothing finished while blocked"); bu.push("Done line flattens on the same days"); }
+      if (addScope) { bd.push("Line jumps up on day 5. Added scope or re-estimate? The chart can't say"); bu.push("Scope steps 40 → 50 on day 5: the change is visible"); }
+      bd.push(`Ends with ${last.scope - last.done} points left`);
+      bu.push(`Gap between scope and done = ${last.scope - last.done} points`);
+      $("bd-notes").innerHTML = bd.map((x) => `<li>${x}</li>`).join("");
+      $("bu-notes").innerHTML = bu.map((x) => `<li>${x}</li>`).join("");
+    }
+    $("ag-scope").addEventListener("click", () => { addScope = !addScope; $("ag-scope").setAttribute("aria-pressed", addScope); burnCharts(); });
+    $("ag-block").addEventListener("click", () => { blocked = !blocked; $("ag-block").setAttribute("aria-pressed", blocked); burnCharts(); });
+    burnCharts();
+
+    /* ---------- Cumulative flow ---------- */
+    let cfdMode = 0;
+    function renderCFD() {
+      const W = 520, H = 260, P = { t: 16, r: 92, b: 40, l: 40 };
+      const days = Array.from({ length: 11 }, (_, d) => {
+        const total = 20 + 3 * d, started = 6 + 3 * d;
+        const done = cfdMode ? Math.round(3 * d * (1 - d / 20)) : 3 * d;
+        return { d, total, started, done };
+      });
+      const a = axes(W, H, P, 10, 60, [0, 2, 4, 6, 8, 10], [0, 20, 40, 60], "Day", (v) => v);
+      const area = (top, bot) => `M${days.map((p) => `${a.X(p.d)},${a.Y(top(p))}`).join("L")}L${[...days].reverse().map((p) => `${a.X(p.d)},${a.Y(bot(p))}`).join("L")}Z`;
+      const end = days[10];
+      const mid = (lo, hi) => a.Y((lo + hi) / 2) + 4;
+      $("cfd").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative flow: to do, in progress and done over time">${a.s}
+        <path d="${area((p) => p.total, (p) => p.started)}" fill="var(--s-pv)" opacity=".85" stroke="var(--surface)" stroke-width="2"/>
+        <path d="${area((p) => p.started, (p) => p.done)}" fill="var(--s-ac)" opacity=".85" stroke="var(--surface)" stroke-width="2"/>
+        <path d="${area((p) => p.done, () => 0)}" fill="var(--s-ev)" opacity=".85" stroke="var(--surface)" stroke-width="2"/>
+        <text x="${a.X(10) + 8}" y="${mid(end.started, end.total)}" font-size="12" font-weight="700" fill="var(--text)">To do</text>
+        <text x="${a.X(10) + 8}" y="${mid(end.done, end.started)}" font-size="12" font-weight="700" fill="var(--text)">In progress</text>
+        <text x="${a.X(10) + 8}" y="${mid(0, end.done)}" font-size="12" font-weight="700" fill="var(--text)">Done</text></svg>`;
+      $("cfd-notes").innerHTML = (cfdMode
+        ? ["The in-progress band widens: work starts faster than it finishes", "Done flattens: something downstream, like review or QA, is stuck", "Ask: where is work waiting? Limit WIP and swarm on the blockage"]
+        : ["Bands stay parallel: work flows in and out at the same pace", "Band width = work in progress; steady width = stable WIP", "Horizontal distance between bands ≈ how long items take"]
+      ).map((x) => `<li>${x}</li>`).join("");
+    }
+    $("cfd-seg").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-c]");
+      if (!b) return;
+      cfdMode = +b.dataset.c;
+      [...$("cfd-seg").children].forEach((x) => x.setAttribute("aria-pressed", x === b));
+      renderCFD();
+    });
+    renderCFD();
+
+    /* ---------- Quizzes ---------- */
+    function quiz(root, title, hint, opts, items) {
+      let i = 0, res = [], answered = false;
+      function render(pick) {
+        const dots = items.map((_, j) => `<i class="${res[j] === true ? "good" : res[j] === false ? "bad" : ""}"></i>`).join("");
+        if (i >= items.length) {
+          const sc = res.filter(Boolean).length;
+          root.innerHTML = `<h3>${title}</h3><div class="dots">${dots}</div>
+            <div class="q-text">${sc >= items.length - 1 ? "🏆" : sc >= items.length / 2 ? "👍" : "🌱"} ${sc} / ${items.length}</div>
+            <div class="q-fb hint">${sc === items.length ? "Perfect. You can read a status report." : "Review the explanations and try again."}</div>
+            <div class="q-foot"><button class="btn primary" data-retry>↺ Try again</button></div>`;
+          return;
+        }
+        const it = items[i];
+        root.innerHTML = `<h3>${title}</h3><div class="dots">${dots}</div>
+          <div class="q-text">${it.q}</div>
+          ${it.data ? `<div class="q-data">${it.data.map((d) => `<span>${d}</span>`).join("")}</div>` : ""}
+          <div class="q-opts">${opts.map((o, j) => {
+            const cls = answered ? (j === it.a ? "right" : j === pick ? "wrong" : "") : "";
+            return `<button class="btn ${cls}" data-o="${j}" ${answered ? "disabled" : ""}>${o}</button>`; }).join("")}</div>
+          <div class="q-fb ${answered ? "" : "hint"}">${answered ? `${pick === it.a ? "✓ <b>Correct.</b>" : `✗ <b>It's ${opts[it.a]}.</b>`} ${it.why}` : hint}</div>
+          <div class="q-foot">${answered ? `<button class="btn primary" data-next>${i === items.length - 1 ? "See score" : "Next →"}</button>` : ""}</div>`;
+      }
+      root.addEventListener("click", (e) => {
+        const o = e.target.closest("[data-o]");
+        if (o && !answered) { const p = +o.dataset.o; answered = true; res[i] = p === items[i].a; render(p); }
+        if (e.target.closest("[data-next]")) { i++; answered = false; render(); }
+        if (e.target.closest("[data-retry]")) { i = 0; res = []; answered = false; render(); }
+      });
+      render();
+    }
+    quiz($("quiz-evm"), "📈 Read the indices", "Tip: below 1.0 (or negative) is bad.",
+      ["Ahead & under", "Ahead & over", "Behind & under", "Behind & over"], [
+        { q: "What's the status?", data: ["SPI 0.80", "CPI 1.10"], a: 2, why: "SPI under 1 means less work done than planned; CPI over 1 means each dollar bought more than a dollar of work." },
+        { q: "What's the status?", data: ["SPI 1.05", "CPI 0.90"], a: 1, why: "Slightly ahead of plan, but paying $1 for every $0.90 of work." },
+        { q: "What's the status?", data: ["SV −$12k", "CV −$8k"], a: 3, why: "Negative variances are bad: less earned than planned (SV) and less earned than spent (CV)." },
+        { q: "What's the status?", data: ["PV $40k", "EV $50k", "AC $45k"], a: 0, why: "SPI = 50 ÷ 40 = 1.25 and CPI = 50 ÷ 45 ≈ 1.11. Both above 1." },
+        { q: "What's the status?", data: ["PV $40k", "EV $30k", "AC $25k"], a: 2, why: "SPI = 30 ÷ 40 = 0.75 but CPI = 30 ÷ 25 = 1.2. Slow, but cheap so far. Maybe understaffed?" },
+        { q: "What's the status?", data: ["PV $80k", "EV $90k", "AC $100k"], a: 1, why: "SPI = 90 ÷ 80 ≈ 1.13, CPI = 90 ÷ 100 = 0.90. Buying speed with money, e.g. overtime." },
+      ]);
+    quiz($("quiz-chart"), "📊 Which chart answers it?", "Pick the chart you'd open first.",
+      ["📈 EVM S-curve", "📉 Burndown", "📊 Burn-up", "🌊 Cumulative flow"], [
+        { q: "Will we finish this sprint's committed work?", a: 1, why: "A burndown against the ideal line shows the remaining work for a fixed sprint scope." },
+        { q: "Is scope growing faster than we deliver?", a: 2, why: "A burn-up draws scope and done as separate lines, so scope growth is visible." },
+        { q: "Where is work piling up in our process?", a: 3, why: "A widening band in a CFD shows the stage where work waits." },
+        { q: "Are we getting the value we paid for so far?", a: 0, why: "EV vs AC on the S-curve compares work earned to money spent." },
+        { q: "When will the release be done if scope keeps changing?", a: 2, why: "Project the done line until it meets the (moving) scope line." },
+        { q: "Is code review a bottleneck?", a: 3, why: "Track review as its own band. If it keeps widening, review is the constraint." },
+      ]);
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"Our CPI is 0.85.\"", "We earn about $0.85 of value (EV) for every $1 spent. Over budget.", "Is it a trend or a one-off? What's driving it, and what's the EAC if it continues?"],
+      ["\"We're burning budget faster than planned.\"", "Actual cost is ahead of planned value. Not bad if work is also ahead.", "How much work is actually done (EV)? Are we spending more because we're ahead?"],
+      ["\"The burndown is flat.\"", "Nothing has been finished for a while: blocked, stories too big, or the board isn't updated.", "What's blocking us? Can we split stories so they finish within a day or two?"],
+      ["\"Scope went up mid-sprint.\"", "Work was added after sprint planning.", "Who added it, what came out to make room, and does the Product Owner agree it protects the Sprint Goal?"],
+      ["\"What's the EAC?\"", "Estimate at completion: the forecast total cost.", "Which formula? Current efficiency continues (BAC ÷ CPI) or the overrun was one-off (AC + BAC − EV)?"],
+      ["\"Can we release the management reserve?\"", "Money for unknown unknowns. It sits outside the cost baseline and the sponsor controls it.", "Is this truly unforeseen work within scope? What's the change request, and who approves it?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(7);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

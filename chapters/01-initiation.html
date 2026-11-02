@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Initiation · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    /* ---------- Explore: two kickoffs ---------- */
+    .brief { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .brief span { display: inline-block; background: var(--accent-soft); color: var(--accent); padding: 8px 16px; border-radius: 12px; }
+    .note { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+    .race { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 680px) { .race { grid-template-columns: 1fr; } }
+    .team-col h3 { margin: 0 0 4px; }
+    .team-col .motto { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+    .meter { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 6px 0 14px; }
+    .meter i { display: block; height: 100%; background: var(--bad); transition: width .6s, background .6s; }
+    .meter-lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+    .meter-lbl b { color: var(--text); }
+    .weeks { display: flex; flex-direction: column; gap: 8px; }
+    .wk { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; animation: pop .35s ease; }
+    .wk .n { flex: none; font-size: 11px; font-weight: 800; color: var(--accent); width: 34px; padding-top: 2px; }
+    .wk.ghost { background: transparent; border: 1.5px dashed var(--line); color: var(--muted); animation: none; }
+    .wk.result { background: var(--bad-soft); }
+    .wk.result.win { background: var(--good-soft); }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px); } }
+    .race-controls { display: flex; flex-direction: column; gap: 14px; align-items: center; margin-top: 24px; }
+    .wk-dots { display: flex; gap: 6px; }
+    .wk-dots i { width: 28px; height: 6px; border-radius: 999px; background: var(--line); }
+    .wk-dots i.on { background: var(--accent); }
+    .moral { text-align: center; font-size: 20px; font-weight: 800; margin-top: 20px; min-height: 30px; }
+
+    /* ---------- Learn: business case ---------- */
+    .bc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 700px) { .bc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .bc { cursor: pointer; text-align: left; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-height: 44px; transition: border-color .2s; }
+    .bc:hover, .bc.open { border-color: var(--accent); }
+    .bc .e { font-size: 26px; }
+    .bc h4 { margin: 6px 0 2px; font-size: 16px; }
+    .bc .q { color: var(--muted); font-size: 13px; }
+    .bc .more { display: none; margin-top: 10px; font-size: 14px; }
+    .bc.open .more { display: block; }
+    .vs-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+    @media (max-width: 700px) { .vs-row { grid-template-columns: 1fr; } }
+    .vs-row h4 { margin: 0 0 6px; }
+    .vs-row .tagline { color: var(--accent); font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+
+    .roi { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: stretch; margin-top: 20px; }
+    @media (max-width: 700px) { .roi { grid-template-columns: 1fr; } }
+    .slider label { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
+    .slider label:first-child { margin-top: 0; }
+    .slider label b { color: var(--accent); }
+    .slider input[type=range] { width: 100%; height: 44px; accent-color: var(--accent); }
+    .roi-out { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+    .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .kpi { background: var(--surface-2); border-radius: 12px; padding: 12px; text-align: center; }
+    .kpi .v { font-size: 22px; font-weight: 800; }
+    .kpi .l { font-size: 12px; color: var(--muted); }
+    .kpi.good .v { color: var(--good); }
+    .kpi.bad .v { color: var(--bad); }
+    .fine { font-size: 13px; color: var(--muted); }
+
+    /* ---------- Learn: charter builder ---------- */
+    .cb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 760px) { .cb { grid-template-columns: 1fr; } }
+    .cb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+    .cb-row:last-child { border-bottom: 0; }
+    .cb-row span { font-weight: 600; font-size: 14px; }
+    .seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; flex: none; }
+    .seg button { font: inherit; font-size: 13px; font-weight: 700; border: 0; background: transparent; color: var(--muted); border-radius: 999px; padding: 0 14px; min-height: 38px; cursor: pointer; }
+    .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+    .seg button.on.is-clear { color: var(--good); }
+    .seg button.on.is-vague { color: var(--bad); }
+    .cb-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+    .charter { position: sticky; top: 72px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+    .charter h3 { margin: 0 0 2px; }
+    .charter .sub2 { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+    .ch-line { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; padding: 6px 0; font-size: 14px; border-top: 1px solid var(--line); }
+    .ch-line b { display: block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .ch-line.weak .t { color: var(--bad); }
+    .score-bar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 6px 0 4px; }
+    .score-bar i { display: block; height: 100%; background: var(--accent); transition: width .4s; }
+
+    /* ---------- Learn: stakeholders ---------- */
+    .ask3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+    @media (max-width: 600px) { .ask3 { grid-template-columns: 1fr; } }
+    .ask3 .card { text-align: center; }
+    .ask3 .e { font-size: 28px; }
+    .ask3 h4 { margin: 6px 0 4px; }
+    .ask3 p { margin: 0; font-size: 14px; color: var(--muted); }
+    .tray { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 44px; margin-bottom: 16px; }
+    .chip { font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); transition: border-color .2s, background .2s; }
+    .chip:hover { border-color: var(--accent); }
+    .chip.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chip.ok { border-color: var(--good); background: var(--good-soft); }
+    .chip.no { border-color: var(--bad); background: var(--bad-soft); }
+    .grid-wrap { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; }
+    .axis-y { writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--muted); }
+    .axis-x { grid-column: 2; text-align: center; font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--muted); }
+    .quads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .quad { border: 2px dashed var(--line); border-radius: var(--radius); padding: 12px; min-height: 130px; cursor: pointer; transition: border-color .2s, background .2s; }
+    .quad.ready { border-color: var(--accent); background: var(--accent-soft); }
+    .quad h4 { margin: 0 0 2px; font-size: 15px; }
+    .quad .hint2 { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .quad .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .bar { display: flex; gap: 12px; justify-content: center; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+    .bar .msg { flex-basis: 100%; text-align: center; font-weight: 700; min-height: 1.5em; }
+    .why-list { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    @media (max-width: 700px) { .why-list { grid-template-columns: 1fr; } }
+    .why-list div { font-size: 13px; background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+
+    .engage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 24px; align-items: stretch; }
+    @media (max-width: 900px) { .engage { grid-template-columns: 1fr; } }
+    .eng-scale { display: grid; grid-template-columns: 130px repeat(5, minmax(0, 1fr)); gap: 4px; font-size: 12px; align-items: center; }
+    .eng-scale .hd { font-weight: 800; color: var(--muted); text-align: center; font-size: 11px; }
+    .eng-scale .nm { font-weight: 700; font-size: 13px; }
+    .eng-scale .cell { height: 34px; border-radius: 8px; background: var(--surface-2); display: grid; place-items: center; font-weight: 800; }
+    .eng-scale .cell.c { background: var(--bad-soft); color: var(--bad); }
+    .eng-scale .cell.d { background: var(--good-soft); color: var(--good); }
+    .eng-scale .cell.cd { background: var(--accent-soft); color: var(--accent); }
+    .agenda-bar { display: flex; height: 40px; border-radius: 12px; overflow: hidden; margin: 10px 0 12px; }
+    .agenda-bar button { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; color: #fff; min-width: 0; padding: 0; opacity: .75; transition: opacity .2s; }
+    .agenda-bar button.on { opacity: 1; box-shadow: inset 0 -4px 0 rgba(0,0,0,.25); }
+    .ag-item { display: flex; gap: 10px; align-items: baseline; padding: 6px 8px; border-radius: 8px; font-size: 14px; }
+    .ag-item.on { background: var(--accent-soft); }
+    .ag-item .m { flex: none; width: 46px; font-weight: 800; color: var(--accent); }
+    .ag-item .who { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    /* ---------- Try: SMART fixer ---------- */
+    .smart-top { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .smart-vague { text-align: center; font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+    .smart-vague s { color: var(--bad); }
+    .smart-rows { display: flex; flex-direction: column; gap: 10px; }
+    .sm-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
+    @media (max-width: 600px) { .sm-row { grid-template-columns: 44px minmax(0, 1fr); } .sm-row .opt:last-child { grid-column: 2; } }
+    .letter { display: grid; place-items: center; border-radius: 12px; background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: 20px; }
+    .opt { font: inherit; font-size: 14px; text-align: left; cursor: pointer; min-height: 48px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); }
+    .opt:hover { border-color: var(--accent); }
+    .opt.ok { border-color: var(--good); background: var(--good-soft); }
+    .opt.no { border-color: var(--bad); background: var(--bad-soft); }
+    .result-obj { margin-top: 16px; padding: 16px; border-radius: var(--radius); background: linear-gradient(135deg, var(--accent-soft), var(--surface)); border: 1px solid var(--line); font-size: 17px; min-height: 60px; text-align: center; }
+    .result-obj .why { display: block; font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+    .miss { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 900px) { .miss { grid-template-columns: 1fr; } }
+    .paper { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; font-size: 14px; box-shadow: var(--shadow); }
+    .paper h3 { margin: 0 0 10px; }
+    .paper p { margin: 6px 0; }
+    .paper b { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-right: 6px; }
+    .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .ck { font: inherit; font-size: 14px; text-align: left; cursor: pointer; min-height: 48px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); display: flex; gap: 8px; align-items: center; }
+    .ck .box { flex: none; width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 13px; }
+    .ck.on .box { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .ck.ok { border-color: var(--good); background: var(--good-soft); }
+    .ck.no { border-color: var(--bad); background: var(--bad-soft); }
+    .ck-expl { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+    .ck-expl div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 01 Initiation</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 01 · Initiation</div>
+      <h1>Start right.<br>Or start over.</h1>
+      <p>How a project gets its purpose, its boundaries and its decision maker before any work begins.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#learn">💡 Business case</a>
+        <a href="#charter">📜 Charter</a>
+        <a href="#stakeholders">👥 Stakeholders</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Two kickoffs, same request</h2>
+      <p class="sub">Step through week by week and watch the open questions.</p>
+
+      <div class="brief"><span>💬 "We need a customer portal." · VP Sales</span></div>
+      <div class="note">Illustrative scenario</div>
+
+      <div class="race">
+        <div class="card team-col">
+          <h3>🏃 Team "Just build it"</h3>
+          <div class="motto">No charter. "We all know what a portal is."</div>
+          <div class="meter-lbl"><span>Open questions</span><b id="a-val">5</b></div>
+          <div class="meter"><i id="a-bar"></i></div>
+          <div class="weeks" id="a-weeks"></div>
+        </div>
+        <div class="card team-col">
+          <h3>📜 Team "Charter first"</h3>
+          <div class="motto">One page, signed by a sponsor, before building.</div>
+          <div class="meter-lbl"><span>Open questions</span><b id="b-val">5</b></div>
+          <div class="meter"><i id="b-bar"></i></div>
+          <div class="weeks" id="b-weeks"></div>
+        </div>
+      </div>
+
+      <div class="race-controls">
+        <div class="wk-dots" id="wk-dots"></div>
+        <button class="btn primary" id="next-week">▶ Week 1</button>
+      </div>
+      <div class="moral" id="moral"></div>
+    </section>
+
+    <!-- ================= LEARN: BUSINESS CASE ================= -->
+    <section class="section" id="learn">
+      <span class="step-label">💡 Learn</span>
+      <h2>The business case: <em>why</em> do this?</h2>
+      <p class="sub">Six parts. Tap each one.</p>
+      <div class="bc-grid" id="bc-grid"></div>
+
+      <div class="vs-row">
+        <div class="card">
+          <div class="tagline">Business case</div>
+          <h4>Why should we invest?</h4>
+          <ul class="bullets">
+            <li>Owned by the <b>sponsor</b></li>
+            <li>Justifies the investment against options</li>
+            <li>PRINCE2: kept up to date and re-checked at each stage</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="tagline">Project charter</div>
+          <h4>How do we start, and who decides?</h4>
+          <ul class="bullets">
+            <li>Issued by the <b>sponsor</b>, drafted with the PM</li>
+            <li>Formally authorizes the project and the PM's authority (PMBOK)</li>
+            <li>PRINCE2 has no charter: the Project Brief, then the Project Initiation Documentation (PID), fill that role</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Does it pay off?</h2>
+      <p class="sub">A simple ROI and payback calculator. Move the sliders.</p>
+      <div class="roi">
+        <div class="card slider" id="roi-in"></div>
+        <div class="card roi-out" id="roi-out"></div>
+      </div>
+    </section>
+
+    <!-- ================= LEARN: CHARTER ================= -->
+    <section class="section" id="charter">
+      <span class="step-label">📜 Learn</span>
+      <h2>Build the project charter</h2>
+      <p class="sub">Nine parts on one page. Switch each one from vague to clear and watch the charter change.</p>
+      <div class="cb">
+        <div class="card" id="cb-form"></div>
+        <div class="charter" id="cb-card"></div>
+      </div>
+    </section>
+
+    <!-- ================= LEARN: STAKEHOLDERS ================= -->
+    <section class="section" id="stakeholders">
+      <span class="step-label">👥 Learn</span>
+      <h2>Find your stakeholders early</h2>
+      <p class="sub">Ask three questions before the first line of code.</p>
+      <div class="ask3">
+        <div class="card"><div class="e">🎯</div><h4>Who is affected?</h4><p>Users, support, ops, other teams' systems</p></div>
+        <div class="card"><div class="e">⚖️</div><h4>Who decides?</h4><p>Sponsor, budget holder, product owner</p></div>
+        <div class="card"><div class="e">🚧</div><h4>Who can block?</h4><p>Security, legal, finance, platform owners</p></div>
+      </div>
+
+      <h2>Power / interest grid</h2>
+      <p class="sub">Tap a stakeholder, then tap the box where they belong.</p>
+      <div class="tray" id="sh-tray"></div>
+      <div class="grid-wrap">
+        <div class="axis-y">POWER ↑</div>
+        <div class="quads" id="sh-quads"></div>
+        <div class="axis-x">INTEREST →</div>
+      </div>
+      <div class="bar">
+        <button class="btn primary" id="sh-check">Compare with a typical map</button>
+        <button class="btn" id="sh-reset">Reset</button>
+        <span class="msg" id="sh-msg"></span>
+      </div>
+      <div class="why-list" id="sh-why"></div>
+
+      <div class="engage">
+        <div class="card">
+          <h3 style="margin-top:0">Engagement: current vs desired</h3>
+          <p class="fine" style="margin-top:0">From PMBOK's stakeholder engagement assessment matrix. <b style="color:var(--bad)">C</b> = current, <b style="color:var(--good)">D</b> = desired.</p>
+          <div class="eng-scale" id="eng"></div>
+          <ul class="bullets" style="margin-top:12px;font-size:14px">
+            <li>The gap between C and D is your engagement plan</li>
+            <li>A resistant decision maker is a risk: log it</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Kickoff: a 60-minute agenda</h3>
+          <p class="fine" style="margin-top:0">Tap a block. The sponsor opens; the PM runs it.</p>
+          <div class="agenda-bar" id="ag-bar"></div>
+          <div id="ag-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Make it SMART</h2>
+      <p class="sub">Fix each vague objective. For every letter, tap the better wording.</p>
+      <div class="card">
+        <div class="smart-top" id="smart-tabs"></div>
+        <div class="smart-vague" id="smart-vague"></div>
+        <div class="smart-rows" id="smart-rows"></div>
+        <div class="result-obj" id="smart-out"></div>
+      </div>
+
+      <h2 style="margin-top:48px">What's missing from this charter?</h2>
+      <p class="sub">Read the charter, then tick every part that isn't there.</p>
+      <div class="miss">
+        <div class="paper">
+          <h3>📜 Customer Portal: Charter v0.1</h3>
+          <p><b>Purpose</b>Let customers check order status and download invoices without contacting support.</p>
+          <p><b>Objectives</b>Cut "where is my order?" tickets by 30% by 30 June.</p>
+          <p><b>In scope</b>Order tracking, invoice download, SSO login.</p>
+          <p><b>Milestones</b>Design sign-off W3 · Beta W8 · Launch W10.</p>
+          <p><b>Key risks</b>Order API rate limits; ERP data quality.</p>
+        </div>
+        <div class="card">
+          <div class="checks" id="ck-list"></div>
+          <div class="bar">
+            <button class="btn primary" id="ck-check">Check</button>
+            <button class="btn" id="ck-reset">Reset</button>
+            <span class="msg" id="ck-msg"></span>
+          </div>
+          <div class="ck-expl" id="ck-expl"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When someone says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>The <b>business case</b> says why; the <b>charter</b> authorizes the project and the PM.</li>
+          <li>Write <b>SMART objectives</b> and <b>success criteria</b> before work starts.</li>
+          <li>Know <b>who decides</b> and <b>who can block</b> on day one.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const list = a => `<ul class="bullets">${a.map(x => `<li>${x}</li>`).join("")}</ul>`;
+
+    /* ---------- Explore: two kickoffs ---------- */
+    const WEEKS = [
+      { a: ["🏃", "Devs start on login and dashboards. The goal: \"a portal\"."], aq: 7,
+        b: ["📝", "One-page charter: cut order-status tickets 30% in 6 months. Sponsor: VP Customer Ops."], bq: 2 },
+      { a: ["🤔", "Sales wants quoting, Support wants order tracking. Nobody knows who decides."], aq: 10,
+        b: ["🎯", "Scope signed off. In: order tracking, invoices. Out: quoting (phase 2)."], bq: 1 },
+      { a: ["🎈", "Quoting, live chat and a mobile app all get added. No one can say no."], aq: 12,
+        b: ["🧭", "Live chat is requested. Change request assessed and deferred in a day."], bq: 0 },
+      { a: ["📉", "Week 12: budget overrun, no agreed definition of done. Project paused."], aq: 12,
+        b: ["📈", "Week 10: launched. Ticket volume tracked against the charter goal."], bq: 0 },
+    ];
+    let wk = 0;
+    const nextBtn = document.getElementById("next-week");
+    function setMeter(side, v) {
+      document.getElementById(side + "-val").textContent = v;
+      const bar = document.getElementById(side + "-bar");
+      bar.style.width = (v / 12 * 100) + "%";
+      bar.style.background = v > 4 ? "var(--bad)" : "var(--good)";
+    }
+    function renderRace() {
+      document.getElementById("wk-dots").innerHTML = WEEKS.map((_, i) => `<i class="${i < wk ? "on" : ""}"></i>`).join("");
+      ["a", "b"].forEach(side => {
+        document.getElementById(side + "-weeks").innerHTML = WEEKS.map((w, i) => {
+          if (i >= wk) return `<div class="wk ghost"><span class="n">WK ${i + 1}</span><span>${i === WEEKS.length - 1 ? "🏁 Result" : "…"}</span></div>`;
+          const last = i === WEEKS.length - 1;
+          return `<div class="wk ${last ? "result" : ""} ${last && side === "b" ? "win" : ""}">
+            <span class="n">WK ${i + 1}</span><span>${w[side][0]} ${w[side][1]}</span></div>`;
+        }).join("");
+        setMeter(side, wk ? WEEKS[wk - 1][side + "q"] : 5);
+      });
+      const done = wk === WEEKS.length;
+      nextBtn.textContent = done ? "↺ Replay" : `▶ Week ${wk + 1}`;
+      document.getElementById("moral").textContent = done ? "💬 A charter doesn't slow you down. It stops you going in circles." : "";
+    }
+    nextBtn.onclick = () => { wk = wk === WEEKS.length ? 0 : wk + 1; renderRace(); };
+    renderRace();
+
+    /* ---------- Learn: business case ---------- */
+    const BC = [
+      ["❓", "Problem or opportunity", "What hurts, and what's it costing?", ["Support handles thousands of order-status calls", "State it in business terms, not features"]],
+      ["🔀", "Options", "Including \"do nothing\"", ["Do nothing · buy a tool · build a portal", "\"Do nothing\" is the baseline every option must beat"]],
+      ["📈", "Benefits", "What gets better, and how we'll measure it", ["Fewer tickets, faster answers, happier customers", "Each benefit needs a measure and an owner"]],
+      ["💸", "Costs", "One-time and ongoing", ["Build cost, licences, hosting, support", "Running costs are often forgotten"]],
+      ["⚠️", "Risks", "What could stop the benefits", ["Low adoption, data quality, integration effort", "Major risks feed the risk register (Ch 06)"]],
+      ["✅", "Recommendation", "Which option, and why", ["Recommended option with timeline and funding ask", "The sponsor approves (or rejects) it"]],
+    ];
+    const bcGrid = document.getElementById("bc-grid");
+    bcGrid.innerHTML = BC.map(([e, t, q, b]) => `
+      <button class="bc" type="button"><div class="e">${e}</div><h4>${t}</h4><div class="q">${q}</div><div class="more">${list(b)}</div></button>`).join("");
+    bcGrid.onclick = e => { const c = e.target.closest(".bc"); if (c) c.classList.toggle("open"); };
+
+    const ROI = [
+      { k: "upfront", label: "One-time build cost", min: 50, max: 500, step: 10, v: 180, fmt: v => `$${v}k` },
+      { k: "benefit", label: "Yearly benefit", min: 10, max: 400, step: 10, v: 150, fmt: v => `$${v}k` },
+      { k: "running", label: "Yearly running cost", min: 0, max: 150, step: 5, v: 30, fmt: v => `$${v}k` },
+      { k: "years", label: "Years evaluated", min: 1, max: 5, step: 1, v: 3, fmt: v => `${v} yr` },
+    ];
+    const roiVal = Object.fromEntries(ROI.map(r => [r.k, r.v]));
+    const roiIn = document.getElementById("roi-in");
+    roiIn.innerHTML = ROI.map(r => `
+      <label for="roi-${r.k}">${r.label} <b id="roi-${r.k}-v">${r.fmt(r.v)}</b></label>
+      <input type="range" id="roi-${r.k}" data-k="${r.k}" min="${r.min}" max="${r.max}" step="${r.step}" value="${r.v}">`).join("");
+    function renderRoi() {
+      const { upfront, benefit, running, years } = roiVal;
+      const totalCost = upfront + running * years;
+      const net = benefit * years - totalCost;
+      const roi = Math.round(net / totalCost * 100);
+      const monthly = (benefit - running) / 12;
+      const payback = monthly > 0 ? upfront / monthly : Infinity;
+      const pay = payback === Infinity ? "Never" : payback < 12 ? `${Math.round(payback)} mo` : `${(payback / 12).toFixed(1)} yr`;
+      document.getElementById("roi-out").innerHTML = `
+        <div class="kpis">
+          <div class="kpi ${net >= 0 ? "good" : "bad"}"><div class="v">${net >= 0 ? "+" : "−"}$${Math.abs(net)}k</div><div class="l">Net over ${years} yr</div></div>
+          <div class="kpi ${roi >= 0 ? "good" : "bad"}"><div class="v">${roi}%</div><div class="l">ROI</div></div>
+          <div class="kpi ${payback <= years * 12 ? "good" : "bad"}"><div class="v">${pay}</div><div class="l">Payback</div></div>
+        </div>
+        <ul class="bullets" style="font-size:14px">
+          <li>ROI = (benefits − costs) ÷ costs</li>
+          <li>Payback = one-time cost ÷ yearly net benefit</li>
+        </ul>
+        <div class="fine">Illustrative numbers. Simple ROI ignores the time value of money; finance teams often use NPV instead.</div>`;
+    }
+    roiIn.oninput = e => {
+      const r = ROI.find(x => x.k === e.target.dataset.k);
+      if (!r) return;
+      roiVal[r.k] = +e.target.value;
+      document.getElementById(`roi-${r.k}-v`).textContent = r.fmt(roiVal[r.k]);
+      renderRoi();
+    };
+    renderRoi();
+
+    /* ---------- Learn: charter builder ---------- */
+    const CH = [
+      ["🎯", "Purpose", "Build a customer portal.", "Let customers self-serve order status and invoices, reducing support load."],
+      ["📌", "Objectives", "Improve customer experience.", "Cut \"where is my order?\" tickets by 30% by 30 June."],
+      ["🏆", "Success criteria", "Stakeholders are happy.", "Ticket volume down 30%; 40% of active customers use it monthly."],
+      ["📦", "Scope", "Everything customers might need.", "In: order tracking, invoices. Out: quoting, live chat (phase 2)."],
+      ["🗓️", "Milestones", "Launch ASAP.", "Design sign-off W3 · Beta W8 · Launch W10."],
+      ["💰", "Budget", "TBD.", "$180k including 10% contingency."],
+      ["⚠️", "Key risks", "None known.", "Order API rate limits; ERP data quality."],
+      ["🧱", "Assumptions & constraints", "None.", "Reuses existing SSO; must meet GDPR; fixed team of 5."],
+      ["🧑‍⚖️", "Sponsor & PM authority", "Everyone decides together.", "Sponsor: VP Customer Ops. PM approves changes up to 1 week or $5k."],
+    ];
+    const clear = CH.map(() => false);
+    const cbForm = document.getElementById("cb-form");
+    function renderCharter() {
+      cbForm.innerHTML = CH.map(([e, label], i) => `
+        <div class="cb-row"><span>${e} ${label}</span>
+          <div class="seg" role="group" aria-label="${label}">
+            <button type="button" class="is-vague ${!clear[i] ? "on" : ""}" data-i="${i}" data-c="0" aria-pressed="${!clear[i]}">Vague</button>
+            <button type="button" class="is-clear ${clear[i] ? "on" : ""}" data-i="${i}" data-c="1" aria-pressed="${clear[i]}">Clear</button>
+          </div></div>`).join("") + `
+        <div class="cb-actions">
+          <button class="btn" id="cb-all-vague" type="button">All vague</button>
+          <button class="btn primary" id="cb-all-clear" type="button">All clear</button>
+        </div>`;
+      const score = clear.filter(Boolean).length;
+      document.getElementById("cb-card").innerHTML = `
+        <h3>📜 Customer Portal: Project Charter</h3>
+        <div class="sub2">${score} / ${CH.length} parts clear ${score === CH.length ? "· ready for sponsor sign-off ✍️" : ""}</div>
+        <div class="score-bar"><i style="width:${score / CH.length * 100}%"></i></div>
+        ${CH.map(([, label, v, c], i) => `
+          <div class="ch-line ${clear[i] ? "" : "weak"}"><span>${clear[i] ? "✅" : "⚠️"}</span>
+            <div><b>${label}</b><span class="t">${clear[i] ? c : v}</span></div></div>`).join("")}`;
+    }
+    cbForm.onclick = e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.id === "cb-all-vague") clear.fill(false);
+      else if (b.id === "cb-all-clear") clear.fill(true);
+      else if (b.dataset.i) clear[+b.dataset.i] = b.dataset.c === "1";
+      renderCharter();
+    };
+    renderCharter();
+
+    /* ---------- Learn: stakeholder grid ---------- */
+    const QUADS = [
+      ["Keep satisfied", "High power · low interest"],
+      ["Manage closely", "High power · high interest"],
+      ["Monitor", "Low power · low interest"],
+      ["Keep informed", "Low power · high interest"],
+    ];
+    const SH = [
+      ["VP Customer Ops (sponsor)", 1, "Funds it and owns the outcome."],
+      ["VP Sales", 1, "Senior, and wants quoting added. Engage early."],
+      ["CFO", 0, "Approves budget, rarely needs detail."],
+      ["Security team", 0, "Can block launch with a review. Involve early."],
+      ["Support agents", 3, "Daily users of the outcome. Keep them in the loop."],
+      ["Key customers", 3, "Care a lot, little formal say. Beta and updates."],
+      ["HR", 2, "Barely affected. Check occasionally."],
+      ["Data warehouse team", 2, "Not affected unless reporting changes."],
+    ];
+    let placed, shSel, shChecked, shOrder;
+    function resetSh() {
+      placed = SH.map(() => null); shSel = null; shChecked = false;
+      shOrder = SH.map((_, i) => i).sort(() => Math.random() - 0.5);
+      document.getElementById("sh-msg").textContent = "";
+      document.getElementById("sh-why").innerHTML = "";
+      renderSh();
+    }
+    function shChip(i) {
+      const st = shChecked ? (placed[i] === SH[i][1] ? "ok" : "no") : shSel === i ? "sel" : "";
+      return `<button type="button" class="chip ${st}" data-sh="${i}">${SH[i][0]}</button>`;
+    }
+    function renderSh() {
+      const left = shOrder.filter(i => placed[i] === null);
+      document.getElementById("sh-tray").innerHTML = left.length ? left.map(shChip).join("") : `<span class="fine" style="align-self:center">All placed. Compare below ↓</span>`;
+      document.getElementById("sh-quads").innerHTML = QUADS.map(([t, h], q) => `
+        <div class="quad ${shSel !== null ? "ready" : ""}" data-q="${q}">
+          <h4>${t}</h4><div class="hint2">${h}</div>
+          <div class="chips">${shOrder.filter(i => placed[i] === q).map(shChip).join("")}</div>
+        </div>`).join("");
+    }
+    document.getElementById("stakeholders").addEventListener("click", e => {
+      const chip = e.target.closest("[data-sh]"), quad = e.target.closest("[data-q]");
+      if (chip) {
+        const i = +chip.dataset.sh;
+        shChecked = false;
+        if (placed[i] !== null && shSel === null) placed[i] = null;
+        else shSel = shSel === i ? null : i;
+        renderSh();
+      } else if (quad && shSel !== null) {
+        placed[shSel] = +quad.dataset.q; shSel = null; shChecked = false;
+        renderSh();
+      }
+    });
+    document.getElementById("sh-check").onclick = () => {
+      shChecked = true; shSel = null; renderSh();
+      const right = placed.filter((q, i) => q === SH[i][1]).length;
+      const unplaced = placed.filter(q => q === null).length;
+      document.getElementById("sh-msg").textContent = `${right === SH.length ? "🏆" : "👀"} ${right} / ${SH.length} match${unplaced ? ` · ${unplaced} not placed` : ""}. Grids are judgment calls; the reasons matter most.`;
+      document.getElementById("sh-why").innerHTML = SH.map(([n, q, why]) => `<div><b>${n}</b> → ${QUADS[q][0]}. ${why}</div>`).join("");
+    };
+    document.getElementById("sh-reset").onclick = resetSh;
+    resetSh();
+
+    const LEVELS = ["Unaware", "Resistant", "Neutral", "Supportive", "Leading"];
+    const ENG = [["VP Customer Ops", 3, 4], ["VP Sales", 1, 3], ["Security team", 0, 3], ["Support agents", 2, 3]];
+    document.getElementById("eng").innerHTML = `<div></div>${LEVELS.map(l => `<div class="hd">${l}</div>`).join("")}` +
+      ENG.map(([n, c, d]) => `<div class="nm">${n}</div>${LEVELS.map((_, i) =>
+        `<div class="cell ${i === c && i === d ? "cd" : i === c ? "c" : i === d ? "d" : ""}">${i === c && i === d ? "C D" : i === c ? "C" : i === d ? "D" : ""}</div>`).join("")}`).join("");
+
+    const AGENDA = [
+      [10, "Welcome and why we're here", "Sponsor", "#5b4bdb"],
+      [10, "Objectives and success criteria", "Sponsor + PM", "#7a6cf0"],
+      [10, "Scope: in and out", "PM", "#2f8fd8"],
+      [10, "Roles and who decides", "PM", "#1f9d63"],
+      [8, "Timeline and milestones", "PM", "#c98a0b"],
+      [7, "Risks and assumptions", "PM + team", "#d64545"],
+      [5, "Ways of working and next steps", "PM", "#8a8a95"],
+    ];
+    let agOn = 0;
+    function renderAgenda() {
+      document.getElementById("ag-bar").innerHTML = AGENDA.map(([m, t, , c], i) =>
+        `<button type="button" class="${i === agOn ? "on" : ""}" data-ag="${i}" style="flex:${m};background:${c}" aria-label="${t}, ${m} minutes">${m}′</button>`).join("");
+      document.getElementById("ag-list").innerHTML = AGENDA.map(([m, t, who], i) =>
+        `<div class="ag-item ${i === agOn ? "on" : ""}"><span class="m">${m} min</span><span>${t}</span><span class="who">${who}</span></div>`).join("");
+    }
+    document.getElementById("ag-bar").onclick = e => { const b = e.target.closest("[data-ag]"); if (b) { agOn = +b.dataset.ag; renderAgenda(); } };
+    renderAgenda();
+
+    /* ---------- Try: SMART fixer ---------- */
+    const SMART = [
+      { vague: "Improve the customer portal.", rows: [
+        ["S", "Let customers track order status online", "Make the portal better"],
+        ["M", "cutting \"where is my order?\" tickets by 30%", "reducing tickets a lot"],
+        ["A", "using the existing order API", "by rebuilding every backend system"],
+        ["R", "to support Customer Ops' cost goal", "because portals are trendy"],
+        ["T", "by 30 June", "as soon as possible"] ] },
+      { vague: "Make releases faster.", rows: [
+        ["S", "Automate deployment of the web app", "Improve DevOps"],
+        ["M", "going from one release a month to one a week", "releasing more often"],
+        ["A", "with the current two-person platform team", "with no extra effort from anyone"],
+        ["R", "so fixes reach customers sooner", "because other companies do it"],
+        ["T", "by the end of Q3", "eventually"] ] },
+      { vague: "Onboard users better.", rows: [
+        ["S", "Redesign the signup-to-first-order flow", "Fix onboarding"],
+        ["M", "raising 7-day activation from 25% to 40%", "getting more users"],
+        ["A", "within the current team's capacity", "by hiring twenty people next month"],
+        ["R", "to support this year's growth target", "because the CEO mentioned it"],
+        ["T", "by 1 December", "when it's ready"] ] },
+    ];
+    const LETTER = { S: "Specific", M: "Measurable", A: "Achievable", R: "Relevant", T: "Time-bound" };
+    let sRound = 0;
+    const sPick = SMART.map(r => r.rows.map(() => null));
+    const sFlip = SMART.map(r => r.rows.map(() => Math.random() < 0.5));
+    function renderSmart() {
+      const r = SMART[sRound];
+      document.getElementById("smart-tabs").innerHTML = SMART.map((x, i) => {
+        const solved = sPick[i].every(p => p === 0);
+        return `<button type="button" class="btn ${i === sRound ? "primary" : ""}" data-round="${i}">${solved ? "✅ " : ""}Objective ${i + 1}</button>`;
+      }).join("");
+      document.getElementById("smart-vague").innerHTML = `❌ <s>"${r.vague}"</s>`;
+      document.getElementById("smart-rows").innerHTML = r.rows.map(([l, good, bad], j) => {
+        const opts = sFlip[sRound][j] ? [[1, bad], [0, good]] : [[0, good], [1, bad]];
+        return `<div class="sm-row"><div class="letter" title="${LETTER[l]}" aria-label="${LETTER[l]}">${l}</div>
+          ${opts.map(([k, txt]) => {
+            const st = sPick[sRound][j] === k ? (k === 0 ? "ok" : "no") : "";
+            return `<button type="button" class="opt ${st}" data-row="${j}" data-k="${k}">${txt}</button>`;
+          }).join("")}</div>`;
+      }).join("");
+      const picks = sPick[sRound];
+      const parts = r.rows.map(([, good, bad], j) => picks[j] === null ? "…" : picks[j] === 0 ? good : bad);
+      const good = picks.filter(p => p === 0).length;
+      document.getElementById("smart-out").innerHTML = picks.some(p => p !== null)
+        ? `${parts.join(", ")}.<span class="why">${good} / 5 letters SMART${good === 5 ? " · a real objective you can track ✅" : picks.includes(1) ? " · red picks are vague, unrealistic or not tied to a goal" : ""}</span>`
+        : `<span class="why">Your rewritten objective appears here.</span>`;
+    }
+    document.getElementById("try").addEventListener("click", e => {
+      const t = e.target.closest("[data-round]"), o = e.target.closest("[data-row]");
+      if (t) { sRound = +t.dataset.round; renderSmart(); }
+      if (o) { sPick[sRound][+o.dataset.row] = +o.dataset.k; renderSmart(); }
+    });
+    renderSmart();
+
+    /* ---------- Try: what's missing ---------- */
+    const CK = [
+      ["Purpose", false, "Present: why the project exists."],
+      ["Objectives", false, "Present, and SMART."],
+      ["Success criteria", true, "Missing: how will the sponsor judge success at the end?"],
+      ["In scope", false, "Present."],
+      ["Out of scope", true, "Missing: without it, quoting and chat will creep in."],
+      ["Milestones", false, "Present."],
+      ["Budget", true, "Missing: no one knows the spending limit or contingency."],
+      ["Key risks", false, "Present."],
+      ["Assumptions & constraints", true, "Missing: e.g. reusing SSO, GDPR, fixed team size."],
+      ["Sponsor & PM authority", true, "Missing: who signs off, and what can the PM approve alone?"],
+    ];
+    let ckOn = CK.map(() => false), ckDone = false;
+    function renderCk() {
+      document.getElementById("ck-list").innerHTML = CK.map(([n, miss], i) => {
+        const st = ckDone ? (ckOn[i] === miss ? "ok" : "no") : "";
+        return `<button type="button" class="ck ${ckOn[i] ? "on" : ""} ${st}" data-ck="${i}" aria-pressed="${ckOn[i]}"><span class="box">${ckOn[i] ? "✓" : ""}</span>${n}</button>`;
+      }).join("");
+      document.getElementById("ck-expl").innerHTML = ckDone
+        ? CK.filter(([, miss], i) => miss || ckOn[i]).map(([n, , why]) => `<div><b>${n}:</b> ${why}</div>`).join("") : "";
+    }
+    document.getElementById("ck-list").onclick = e => {
+      const b = e.target.closest("[data-ck]");
+      if (!b) return;
+      ckOn[+b.dataset.ck] = !ckOn[+b.dataset.ck]; ckDone = false;
+      document.getElementById("ck-msg").textContent = "";
+      renderCk();
+    };
+    document.getElementById("ck-check").onclick = () => {
+      ckDone = true; renderCk();
+      const right = CK.filter(([, miss], i) => ckOn[i] === miss).length;
+      document.getElementById("ck-msg").textContent = `${right === CK.length ? "🏆" : "👀"} ${right} / ${CK.length} correct · 5 parts are missing`;
+    };
+    document.getElementById("ck-reset").onclick = () => { ckOn = CK.map(() => false); ckDone = false; document.getElementById("ck-msg").textContent = ""; renderCk(); };
+    renderCk();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"Who's the sponsor?\"", "The person who owns the business case, funds the project and makes the final calls.", "Who approves scope or budget changes, and how fast can they decide?"],
+      ["\"Do we have a charter?\"", "The document that formally authorizes the project and the PM's authority.", "Who signed it, and does it state success criteria?"],
+      ["\"What does success look like?\"", "Measurable success criteria agreed before work starts.", "Which metric, what target, measured when and by whom?"],
+      ["\"That's an assumption.\"", "Something treated as true without proof yet.", "What happens if it's wrong, and when will we validate it?"],
+      ["\"Is that in or out of scope?\"", "Checking a request against the agreed boundary.", "Is it in the charter? If not, let's raise a change request."],
+      ["\"Let's do a kickoff.\"", "The meeting that aligns everyone on why, what, who and how.", "Is the sponsor opening it, and are the blockers in the room?"],
+    ];
+    document.getElementById("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(1);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

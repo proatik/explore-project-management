@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Team & Resources · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tabs .btn.active, .seg .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .seg { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .btn { min-height: 44px; }
+
+    /* ---------- Explore: who owns the migration ---------- */
+    .brief { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+    .brief span { display: inline-block; background: var(--surface-2); padding: 8px 16px; border-radius: 12px; }
+    .own { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .own { grid-template-columns: 1fr; } }
+    .tl { display: flex; flex-direction: column; gap: 8px; }
+    .tl-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; animation: pop .35s ease both; }
+    .tl-item .d { flex: none; width: 52px; font-size: 11px; font-weight: 800; color: var(--accent); padding-top: 2px; }
+    .tl-item.bad { background: var(--bad-soft); }
+    .tl-item.good { background: var(--good-soft); }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px); } }
+    .outcome { display: flex; flex-direction: column; gap: 12px; }
+    .outcome .big { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
+    .outcome .big.bad { color: var(--bad); }
+    .outcome .big.good { color: var(--good); }
+    .mini-raci { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center; }
+    .mini-raci div { padding: 8px 4px; border-radius: 10px; background: var(--surface-2); font-size: 12px; }
+    .mini-raci b { display: block; font-size: 18px; }
+
+    /* ---------- RACI builder ---------- */
+    .legend-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    @media (max-width: 700px) { .legend-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .lg { padding: 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+    .lg .k { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .lg b { display: block; font-size: 14px; }
+    .lg span { font-size: 13px; color: var(--muted); }
+    .k-R { background: #3b82f6; } .k-A { background: var(--accent); } .k-C { background: #d97706; } .k-I { background: #64748b; } .k-S { background: #0d9488; } .k-D { background: #db2777; }
+    .matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    table.raci { border-collapse: collapse; width: 100%; min-width: 640px; }
+    .raci th, .raci td { padding: 6px; text-align: center; border-bottom: 1px solid var(--line); }
+    .raci thead th { font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .04em; padding: 12px 6px; }
+    .raci th.task { text-align: left; font-size: 14px; color: var(--text); padding-left: 14px; min-width: 150px; }
+    .raci tr:last-child td, .raci tr:last-child th { border-bottom: 0; }
+    .cell { width: 44px; height: 44px; border-radius: 10px; border: 1.5px dashed var(--line); background: transparent; color: var(--muted); font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; }
+    .cell.v-R, .cell.v-A, .cell.v-C, .cell.v-I, .cell.v-S, .cell.v-D { border-style: solid; border-color: transparent; color: #fff; }
+    .cell.v-R { background: #3b82f6; } .cell.v-A { background: var(--accent); } .cell.v-C { background: #d97706; } .cell.v-I { background: #64748b; } .cell.v-S { background: #0d9488; } .cell.v-D { background: #db2777; }
+    .row-ok { font-size: 13px; text-align: left !important; min-width: 170px; }
+    .row-ok .ok { color: var(--good); font-weight: 700; }
+    .row-ok .no { color: var(--bad); font-weight: 700; }
+    .row-ok .warn { color: var(--warn); font-weight: 700; }
+    .load th { font-size: 12px; color: var(--muted); }
+    .load td { font-size: 12px; font-weight: 700; }
+    .load td.hot { color: var(--bad); }
+    .load td.cold { color: var(--warn); }
+    .raci-foot { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    @media (max-width: 700px) { .raci-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .rule { padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
+    .rule b { display: block; margin-bottom: 2px; }
+    .variant-note { margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); font-size: 14px; }
+
+    /* ---------- Capacity ---------- */
+    .cap { display: flex; flex-direction: column; gap: 16px; }
+    #people { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .cap-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.6fr); gap: 12px 20px; align-items: center; }
+    .cap-sum .stat { flex-direction: column; align-items: flex-start; border: 0; padding: 0; }
+    .cap-sum .verdict { margin: 0; }
+    .cap-sum .foot { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .cap-sum .foot .formula { margin: 0; }
+    @media (max-width: 760px) { .cap-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cap-sum .verdict { grid-column: 1 / -1; } }
+    @media (max-width: 600px) { #people { grid-template-columns: 1fr; } }
+    .person { padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+    .p-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .p-head b { font-size: 15px; }
+    .p-head span { font-size: 12px; color: var(--muted); }
+    .p-ctrls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+    .p-head .btn { min-height: 40px; padding: 0 12px; font-size: 13px; }
+    .p-head .who span { display: block; }
+    .stepper-ctl { display: flex; align-items: center; justify-content: space-between; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+    .stepper-ctl button { width: 36px; height: 36px; border-radius: 9px; border: 0; background: var(--surface-2); color: var(--text); font: inherit; font-weight: 800; font-size: 18px; cursor: pointer; }
+    .stepper-ctl .v { text-align: center; font-size: 12px; line-height: 1.2; }
+    .stepper-ctl .v b { display: block; font-size: 14px; }
+    .bar { position: relative; height: 14px; border-radius: 999px; background: var(--surface); overflow: hidden; border: 1px solid var(--line); }
+    .bar i { position: absolute; inset: 0 auto 0 0; background: var(--good); transition: width .3s, background .3s; }
+    .bar i.over { background: var(--bad); }
+    .bar i.under { background: var(--warn); }
+    .bar-lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .bar-lbl b { color: var(--text); }
+    .cap-sum .stat { display: flex; font-size: 14px; color: var(--muted); }
+    .cap-sum .stat b { font-size: 24px; color: var(--text); }
+    .cap-sum .verdict { padding: 12px 14px; border-radius: 12px; font-weight: 700; font-size: 14px; }
+    .cap-sum .verdict.good { background: var(--good-soft); color: var(--good); }
+    .cap-sum .verdict.bad { background: var(--bad-soft); color: var(--bad); }
+    .formula { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: var(--surface-2); padding: 10px 12px; border-radius: 10px; margin-top: 12px; line-height: 1.6; }
+
+    .switch { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; align-items: center; }
+    @media (max-width: 700px) { .switch { grid-template-columns: 1fr; } }
+    .proj-btns { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; }
+    .proj-btns .btn { min-width: 52px; }
+    .stack { display: flex; height: 44px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+    .stack div { display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; transition: flex .4s; min-width: 0; overflow: hidden; white-space: nowrap; }
+    .stack .lost { background: repeating-linear-gradient(45deg, var(--bad), var(--bad) 8px, color-mix(in srgb, var(--bad) 75%, #000) 8px, color-mix(in srgb, var(--bad) 75%, #000) 16px); }
+    .sw-legend { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 8px; }
+    .sw-legend b { color: var(--text); }
+
+    /* ---------- Team dynamics ---------- */
+    .tuck { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
+    .tuck .btn { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 120px; padding: 10px 12px; }
+    .tuck .btn small { font-weight: 600; font-size: 11px; opacity: .8; }
+    .tuck-curve svg { width: 100%; height: auto; display: block; }
+    .tuck-curve path { fill: none; stroke: var(--accent); stroke-width: 3; }
+    .tuck-curve circle { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+    .tuck-curve circle.on { fill: var(--accent); stroke: var(--accent); }
+    .tuck-curve text { fill: var(--muted); font-size: 12px; font-family: var(--font); }
+    .tuck-panel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+    @media (max-width: 700px) { .tuck-panel { grid-template-columns: 1fr; } }
+    .tuck-panel h4, .tt-panel h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .tuck-panel .tpm { background: var(--accent-soft); border-radius: 12px; padding: 12px; }
+
+    .safety { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .safety { grid-template-columns: 1fr; } }
+    .ari { display: flex; flex-direction: column; gap: 8px; }
+    .ari button { display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; min-height: 48px; }
+    .ari .n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: 13px; font-weight: 800; }
+    .ari button.active .n { background: #fff; color: var(--accent); }
+    .ari-detail { margin-top: 10px; font-size: 14px; min-height: 44px; }
+    .pyramid { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .pyramid button { min-height: 48px; border-radius: 10px; border: 0; color: #fff; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; padding: 6px 10px; transition: filter .2s, box-shadow .2s; }
+    .pyramid button.active { box-shadow: 0 0 0 3px var(--text); }
+    .py-detail { margin-top: 12px; font-size: 14px; text-align: center; min-height: 66px; }
+
+    .tt-types { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 760px) { .tt-types { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .tt { text-align: left; padding: 14px; border-radius: 14px; background: var(--surface); border: 1.5px solid var(--line); cursor: pointer; font: inherit; color: var(--text); min-height: 96px; }
+    .tt.active { border-color: var(--accent); background: var(--accent-soft); }
+    .tt .e { font-size: 24px; }
+    .tt b { display: block; font-size: 14px; margin-top: 4px; }
+    .tt small { color: var(--muted); font-size: 12px; }
+    .tt-panel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+    @media (max-width: 700px) { .tt-panel { grid-template-columns: 1fr; } }
+    .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+    @media (max-width: 700px) { .modes { grid-template-columns: 1fr; } }
+    .mode { padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 13px; }
+    .mode b { display: block; font-size: 14px; margin-bottom: 2px; }
+
+    /* ---------- Try ---------- */
+    .fix { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 1000px) { .fix { grid-template-columns: 1fr; } }
+    #fx-table { min-width: 520px; }
+    .fx-row { cursor: pointer; }
+    .fx-row th.task { position: relative; }
+    .fx-row.sel { background: var(--accent-soft); }
+    .fx-row.solved { background: var(--good-soft); }
+    .fx-row.wrong { background: var(--bad-soft); }
+    .tagv { display: inline-grid; place-items: center; min-width: 34px; height: 30px; padding: 0 6px; border-radius: 8px; font-weight: 800; font-size: 13px; color: #fff; }
+    .tagv.e { background: transparent; border: 1.5px dashed var(--line); color: var(--muted); }
+    .fx-panel h4 { margin: 0 0 10px; }
+    .fx-opts { display: flex; flex-direction: column; gap: 8px; }
+    .fx-opts .btn { text-align: left; }
+    .fx-fb { margin-top: 12px; padding: 12px 14px; border-radius: 12px; font-size: 14px; }
+    .fx-fb.good { background: var(--good-soft); }
+    .fx-fb.bad { background: var(--bad-soft); }
+
+    .scn-card { max-width: 720px; margin: 0 auto; }
+    .scn-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .scn-stage { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+    .scn-q { font-size: 19px; font-weight: 700; margin: 4px 0 16px; }
+    .scn-opts { display: flex; flex-direction: column; gap: 8px; }
+    .scn-opts .btn { text-align: left; }
+    .scn-opts .btn.right { background: var(--good-soft); border-color: var(--good); }
+    .scn-opts .btn.wrongpick { background: var(--bad-soft); border-color: var(--bad); }
+    .scn-fb { margin-top: 12px; font-size: 14px; }
+    .scn-fb:empty, .scn-nav:empty { display: none; }
+    .scn-nav { display: flex; justify-content: center; margin-top: 14px; }
+    .dots { display: flex; gap: 6px; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+    .dots i.good { background: var(--good); }
+    .dots i.bad { background: var(--bad); }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 05 Team &amp; Resources</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 05 · Team &amp; Resources</div>
+      <h1>Clear owners.<br>Real capacity.</h1>
+      <p>Who does what, how much they can carry, and how teams actually work together.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#raci">💡 RACI</a>
+        <a href="#capacity">📊 Capacity</a>
+        <a href="#dynamics">🌱 Dynamics</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>"I thought you had it"</h2>
+      <p class="sub">Same team, same launch. Switch between the two versions.</p>
+
+      <div class="brief"><span>🚀 Launch day is Friday. It needs a database migration.</span></div>
+      <div class="seg" id="own-seg">
+        <button class="btn active" data-own="0">😬 No clear owner</button>
+        <button class="btn" data-own="1">✅ With a RACI</button>
+      </div>
+      <div class="own">
+        <div class="card"><div class="tl" id="own-tl"></div></div>
+        <div class="card outcome" id="own-out"></div>
+      </div>
+    </section>
+
+    <!-- ================= RACI ================= -->
+    <section class="section" id="raci">
+      <span class="step-label">💡 Learn</span>
+      <h2>The RACI matrix</h2>
+      <p class="sub">Tasks down the side, people across the top. Tap a cell to cycle its letter.</p>
+
+      <div class="tabs" id="var-tabs">
+        <button class="btn active" data-var="RACI">RACI</button>
+        <button class="btn" data-var="RASCI">RASCI</button>
+        <button class="btn" data-var="DACI">DACI (decisions)</button>
+      </div>
+      <div class="legend-cards" id="legend"></div>
+      <div class="matrix-wrap"><table class="raci" id="raci-table"></table></div>
+      <div class="raci-foot">
+        <div class="rule"><b>☝️ Exactly one A per row</b>One accountable person. Two means nobody.</div>
+        <div class="rule"><b>🛠️ At least one R</b>Someone has to do the work.</div>
+        <div class="rule"><b>🐢 Watch the Cs</b>Every C is a two-way conversation. Many Cs = slow.</div>
+        <div class="rule"><b>⚖️ Check the columns</b>Lots of Rs on one person = a bottleneck.</div>
+      </div>
+      <div class="variant-note" id="var-note"></div>
+    </section>
+
+    <!-- ================= CAPACITY ================= -->
+    <section class="section" id="capacity">
+      <span class="step-label">💡 Learn</span>
+      <h2>Capacity is not headcount</h2>
+      <p class="sub">A 2-week sprint has 10 working days per person. Adjust what eats into them.</p>
+
+      <div class="cap">
+        <div id="people"></div>
+        <div class="card cap-sum" id="cap-sum"></div>
+      </div>
+
+      <h2 style="margin-top:40px">The cost of switching</h2>
+      <p class="sub">Spread one person across more projects and watch where their week goes.</p>
+      <div class="card switch">
+        <div>
+          <b>Projects at the same time</b>
+          <div class="proj-btns" id="proj-btns"></div>
+          <ul class="bullets">
+            <li>Each switch costs time to reload context.</li>
+            <li>Finish one thing before starting the next.</li>
+            <li>Shared people are a schedule risk (see Ch 04).</li>
+          </ul>
+        </div>
+        <div>
+          <div class="stack" id="stack"></div>
+          <div class="sw-legend" id="sw-legend"></div>
+          <div class="formula">Source: Gerald Weinberg, <i>Quality Software Management</i> (1992). A rule of thumb, not a measurement.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DYNAMICS ================= -->
+    <section class="section" id="dynamics">
+      <span class="step-label">💡 Learn</span>
+      <h2>How teams grow</h2>
+      <p class="sub">Bruce Tuckman's stages (1965, adjourning added with Jensen in 1977). Tap a stage.</p>
+
+      <div class="card">
+        <div class="tuck" id="tuck-btns"></div>
+        <div class="tuck-curve">
+          <svg viewBox="0 0 800 150" role="img" aria-label="Team performance across Tuckman stages">
+            <path d="M40 100 C 120 100, 160 135, 230 130 S 340 80, 400 70 S 520 25, 600 25 S 720 60, 760 110"/>
+            <g id="tuck-dots"></g>
+            <text x="40" y="146">Performance over time</text>
+          </svg>
+        </div>
+        <div class="tuck-panel" id="tuck-panel"></div>
+      </div>
+
+      <h2 style="margin-top:40px">What makes a team work</h2>
+      <p class="sub">Two well-known models. Tap any item.</p>
+      <div class="safety">
+        <div class="card">
+          <b>Google's Project Aristotle</b>
+          <p class="sub" style="margin:4px 0 12px">Five dynamics of effective teams. Psychological safety came first.</p>
+          <div class="ari" id="ari"></div>
+          <div class="ari-detail" id="ari-detail"></div>
+        </div>
+        <div class="card">
+          <b>Lencioni's Five Dysfunctions</b>
+          <p class="sub" style="margin:4px 0 12px">Each level builds on the one below. Trust is the base.</p>
+          <div class="pyramid" id="pyramid"></div>
+          <div class="py-detail" id="py-detail"></div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Team Topologies</h2>
+      <p class="sub">Matthew Skelton &amp; Manuel Pais (2019): four team types, three ways to interact.</p>
+      <div class="card">
+        <div class="tt-types" id="tt-types"></div>
+        <div class="tt-panel" id="tt-panel"></div>
+        <div class="modes">
+          <div class="mode"><b>🤝 Collaboration</b>Two teams work closely for a while to discover something new.</div>
+          <div class="mode"><b>🔌 X-as-a-Service</b>One team consumes what another provides, with minimal talking.</div>
+          <div class="mode"><b>🧑‍🏫 Facilitating</b>One team helps another learn, then steps away.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Fix this RACI</h2>
+      <p class="sub">5 of these 7 rows break a rule. Tap a row, then name the problem.</p>
+      <div class="fix">
+        <div class="matrix-wrap"><table class="raci" id="fx-table"></table></div>
+        <div class="card fx-panel" id="fx-panel"></div>
+      </div>
+
+      <h2 style="margin-top:48px">Lead the team through it</h2>
+      <p class="sub">4 situations. Pick what a good TPM would do.</p>
+      <div class="card scn-card" id="scn"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When the team says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>Every task needs <b>one Accountable</b> person and at least one <b>Responsible</b>.</li>
+          <li>Plan with <b>real capacity</b>: subtract time off, meetings, on-call and switching.</li>
+          <li>Teams move through stages. <b>Psychological safety</b> is the foundation.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const $ = (id) => document.getElementById(id);
+    const list = (a) => `<ul class="bullets">${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+
+    /* ---------- Explore ---------- */
+    const OWN = [
+      { tl: [
+          ["Mon", "Backend lead: 'The DBA usually runs migrations.'", ""],
+          ["Tue", "DBA: 'DevOps owns anything in the deploy pipeline.'", ""],
+          ["Wed", "DevOps: 'The backend team wrote the script, so it's theirs.'", ""],
+          ["Thu", "Standup: everyone assumes it's done. Nobody checked.", "bad"],
+          ["Fri", "Launch blocked. The migration was never tested on production data.", "bad"],
+        ],
+        out: `<div class="tag bad" style="align-self:flex-start;padding:4px 10px;border-radius:999px;background:var(--bad-soft);color:var(--bad);font-weight:700;font-size:12px">❌ Launch slipped</div>
+          <div class="big bad">+2 weeks</div>
+          <div class="mini-raci">
+            <div><b>?</b>Backend lead</div><div><b>?</b>DBA</div><div><b>?</b>DevOps</div><div><b>?</b>QA</div><div><b>?</b>TPM</div>
+          </div>
+          <ul class="bullets"><li>Three people, zero owners</li><li>Everyone was "involved", nobody was accountable</li><li>The gap only showed up on launch day</li></ul>` },
+      { tl: [
+          ["Mon", "Kickoff: RACI shared. Backend lead is Accountable for the migration.", "good"],
+          ["Tue", "DBA (Responsible) writes and dry-runs it on a production copy.", ""],
+          ["Wed", "DevOps (Consulted) adds it to the deploy runbook.", ""],
+          ["Thu", "Backend lead signs off. QA (Consulted) verifies the data.", "good"],
+          ["Fri", "Launch on time. TPM (Informed) updates stakeholders.", "good"],
+        ],
+        out: `<div class="tag" style="align-self:flex-start;padding:4px 10px;border-radius:999px;background:var(--good-soft);color:var(--good);font-weight:700;font-size:12px">✅ On time</div>
+          <div class="big good">Friday</div>
+          <div class="mini-raci">
+            <div><b>A</b>Backend lead</div><div><b>R</b>DBA</div><div><b>C</b>DevOps</div><div><b>C</b>QA</div><div><b>I</b>TPM</div>
+          </div>
+          <ul class="bullets"><li>One name per decision</li><li>Gaps found on Monday, not Friday</li></ul>` },
+    ];
+    let own = 0;
+    function renderOwn() {
+      document.querySelectorAll("[data-own]").forEach((b) => b.classList.toggle("active", +b.dataset.own === own));
+      $("own-tl").innerHTML = OWN[own].tl.map(([d, t, c], i) =>
+        `<div class="tl-item ${c}" style="animation-delay:${i * 60}ms"><span class="d">${d}</span><span>${t}</span></div>`).join("");
+      $("own-out").innerHTML = OWN[own].out;
+    }
+    $("own-seg").onclick = (e) => { const b = e.target.closest("[data-own]"); if (b) { own = +b.dataset.own; renderOwn(); } };
+    renderOwn();
+
+    /* ---------- RACI builder ---------- */
+    const VARIANTS = {
+      RACI: { keys: ["R", "A", "C", "I"],
+        legend: [["R", "Responsible", "Does the work"], ["A", "Accountable", "Owns the outcome, signs off"], ["C", "Consulted", "Asked before (two-way)"], ["I", "Informed", "Told after (one-way)"]],
+        note: "<b>RACI</b> is the default. Use it for recurring work and deliverables." },
+      RASCI: { keys: ["R", "A", "S", "C", "I"],
+        legend: [["R", "Responsible", "Does the work"], ["A", "Accountable", "Owns the outcome"], ["S", "Support", "Helps the R with resources"], ["C", "Consulted", "Asked before"]],
+        note: "<b>RASCI</b> adds <b>S = Support</b>: people who help the Responsible person, like a shared platform team. I (Informed) still applies." },
+      DACI: { keys: ["D", "A", "C", "I"],
+        legend: [["D", "Driver", "Runs the decision process"], ["A", "Approver", "Makes the final call"], ["C", "Contributors", "Give input"], ["I", "Informed", "Told the result"]],
+        note: "<b>DACI</b> (from Intuit, popularized by Atlassian) is for <b>decisions</b>, not tasks. Use it for things like 'Which database?' or 'Do we cut scope?'." },
+    };
+    const ROLES = ["TPM", "Eng lead", "Developer", "Designer", "QA", "Product"];
+    const TASKS = ["Define requirements", "API design", "Build the feature", "Test plan", "Release go/no-go", "Stakeholder update"];
+    const START = {
+      RACI: [["R", "C", "I", "C", "I", "A"], ["I", "A", "R", "C", "C", "I"], ["I", "A", "R", "C", "I", "I"], ["I", "A", "C", "I", "R", "C"], ["R", "C", "I", "I", "C", "A"], ["R", "I", "I", "I", "I", "A"]],
+    };
+    START.RASCI = START.RACI.map((r, i) => i === 2 ? ["I", "A", "R", "S", "S", "I"] : r.slice());
+    START.DACI = [["D", "C", "I", "C", "I", "A"], ["D", "A", "C", "C", "I", "I"], ["I", "D", "C", "I", "I", "A"], ["C", "C", "I", "I", "D", "A"], ["D", "C", "I", "I", "C", "A"], ["D", "I", "I", "I", "I", "A"]];
+    const ROW_TASKS = { DACI: ["Which features make the MVP?", "Which API style (REST vs GraphQL)?", "Build vs buy the search?", "Ship with known bugs?", "Delay the release?", "Change the launch date?"] };
+    let variant = "RACI";
+    let grid = START.RACI.map((r) => r.slice());
+
+    function rowCheck(row) {
+      const v = VARIANTS[variant];
+      const a = row.filter((x) => x === "A").length;
+      const doer = variant === "DACI" ? "D" : "R";
+      const r = row.filter((x) => x === doer).length;
+      const c = row.filter((x) => x === "C").length;
+      if (a === 0) return `<span class="no">✗ No ${variant === "DACI" ? "Approver" : "Accountable"}</span>`;
+      if (a > 1) return `<span class="no">✗ ${a} A's: nobody truly owns it</span>`;
+      if (r === 0) return `<span class="no">✗ No ${variant === "DACI" ? "Driver" : "Responsible"}</span>`;
+      if (c >= 4) return `<span class="warn">⚠ ${c} Cs: slow decisions</span>`;
+      return `<span class="ok">✓ Clear</span>`;
+    }
+    function renderRaci() {
+      const v = VARIANTS[variant];
+      document.querySelectorAll("[data-var]").forEach((b) => b.classList.toggle("active", b.dataset.var === variant));
+      $("legend").innerHTML = v.legend.map(([k, n, d]) => `<div class="lg"><span class="k k-${k}">${k}</span><b>${n}</b><span>${d}</span></div>`).join("");
+      $("var-note").innerHTML = v.note;
+      const tasks = ROW_TASKS[variant] || TASKS;
+      const doer = variant === "DACI" ? "D" : "R";
+      const load = ROLES.map((_, j) => grid.filter((row) => row[j] === doer || row[j] === "A").length);
+      $("raci-table").innerHTML = `
+        <thead><tr><th class="task">${variant === "DACI" ? "Decision" : "Task"}</th>${ROLES.map((r) => `<th>${r}</th>`).join("")}<th class="row-ok">Check</th></tr></thead>
+        <tbody>${grid.map((row, i) => `<tr><th class="task">${tasks[i]}</th>${row.map((x, j) =>
+          `<td><button class="cell v-${x}" data-cell="${i}-${j}" aria-label="${tasks[i]}, ${ROLES[j]}: ${x}">${x === "-" ? "–" : x}</button></td>`).join("")}
+          <td class="row-ok">${rowCheck(row)}</td></tr>`).join("")}
+          <tr class="load"><th class="task" style="font-size:12px;color:var(--muted)">${doer} + A per person</th>${load.map((n) =>
+            `<td class="${n >= 4 ? "hot" : n === 0 ? "cold" : ""}">${n}${n >= 4 ? " 🔥" : n === 0 ? " ·" : ""}</td>`).join("")}<td class="row-ok" style="font-size:12px;color:var(--muted)">🔥 = possible bottleneck</td></tr>
+        </tbody>`;
+    }
+    $("raci").addEventListener("click", (e) => {
+      const t = e.target.closest("[data-var]");
+      if (t) { variant = t.dataset.var; grid = START[variant].map((r) => r.slice()); renderRaci(); return; }
+      const c = e.target.closest("[data-cell]");
+      if (c) {
+        const [i, j] = c.dataset.cell.split("-").map(Number);
+        const order = [...VARIANTS[variant].keys, "-"];
+        grid[i][j] = order[(order.indexOf(grid[i][j]) + 1) % order.length];
+        renderRaci();
+      }
+    });
+    renderRaci();
+
+    /* ---------- Capacity ---------- */
+    const PEOPLE = [
+      { name: "Aisha", role: "Backend", off: 0, meet: 20, call: false, work: 7 },
+      { name: "Ben", role: "Frontend", off: 2, meet: 10, call: false, work: 7 },
+      { name: "Chen", role: "Backend", off: 0, meet: 20, call: true, work: 7 },
+      { name: "Dana", role: "QA", off: 1, meet: 30, call: false, work: 5 },
+    ];
+    const capOf = (p) => (10 - p.off) * (1 - p.meet / 100) * (p.call ? 0.8 : 1);
+    function renderCap() {
+      $("people").innerHTML = PEOPLE.map((p, i) => {
+        const cap = capOf(p), pct = Math.round(p.work / cap * 100);
+        const cls = pct > 100 ? "over" : pct < 70 ? "under" : "";
+        return `<div class="person">
+          <div class="p-head"><div class="who"><b>${p.name}</b><span>${p.role} · ${cap.toFixed(1)} days available</span></div>
+            <button class="btn" data-p="${i}" data-f="call" aria-pressed="${p.call}" style="${p.call ? "background:var(--accent);border-color:var(--accent);color:#fff" : ""}">📟 On-call</button></div>
+          <div class="p-ctrls">
+            <div class="stepper-ctl"><button data-p="${i}" data-f="off" data-d="-1" aria-label="Fewer days off">−</button><div class="v"><b>${p.off}d</b>off</div><button data-p="${i}" data-f="off" data-d="1" aria-label="More days off">+</button></div>
+            <div class="stepper-ctl"><button data-p="${i}" data-f="meet" data-d="-10" aria-label="Fewer meetings">−</button><div class="v"><b>${p.meet}%</b>meetings</div><button data-p="${i}" data-f="meet" data-d="10" aria-label="More meetings">+</button></div>
+          </div>
+          <div class="p-ctrls" style="grid-template-columns:1fr">
+            <div class="stepper-ctl"><button data-p="${i}" data-f="work" data-d="-1" aria-label="Less work">−</button><div class="v"><b>${p.work} days</b>of work assigned</div><button data-p="${i}" data-f="work" data-d="1" aria-label="More work">+</button></div>
+          </div>
+          <div class="bar"><i class="${cls}" style="width:${Math.min(pct, 100)}%"></i></div>
+          <div class="bar-lbl"><span>Allocation</span><b style="color:${pct > 100 ? "var(--bad)" : pct < 70 ? "var(--warn)" : "var(--good)"}">${pct}%</b></div>
+        </div>`;
+      }).join("");
+      const cap = PEOPLE.reduce((s, p) => s + capOf(p), 0);
+      const work = PEOPLE.reduce((s, p) => s + p.work, 0);
+      const over = PEOPLE.filter((p) => p.work > capOf(p)).map((p) => p.name);
+      $("cap-sum").innerHTML = `
+        <div class="stat"><span>Headcount × 10 days</span><b>${PEOPLE.length * 10}</b></div>
+        <div class="stat"><span>Real capacity</span><b>${cap.toFixed(1)}</b></div>
+        <div class="stat"><span>Work assigned</span><b>${work}</b></div>
+        <div class="verdict ${over.length ? "bad" : "good"}">${over.length
+          ? `🔥 ${over.join(", ")} ${over.length > 1 ? "are" : "is"} over 100%. Move work, cut scope or accept the delay.`
+          : "✅ Everyone fits. Keep some slack for surprises."}</div>
+        <div class="foot"><div class="formula">capacity = (10 − days off) × (1 − meetings %) × 0.8 if on-call</div>
+        <span class="sub" style="margin:0;font-size:13px">Illustrative model. Teams calibrate their own numbers from past sprints.</span></div>`;
+    }
+    $("people").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-f]");
+      if (!b) return;
+      const p = PEOPLE[+b.dataset.p], f = b.dataset.f, d = +b.dataset.d;
+      if (f === "call") p.call = !p.call;
+      if (f === "off") p.off = Math.max(0, Math.min(9, p.off + d));
+      if (f === "meet") p.meet = Math.max(0, Math.min(60, p.meet + d));
+      if (f === "work") p.work = Math.max(0, Math.min(15, p.work + d));
+      renderCap();
+    });
+    renderCap();
+
+    const WEINBERG = [[100, 0], [40, 20], [20, 40], [10, 60], [5, 75]];
+    const PCOL = ["#5b4bdb", "#3b82f6", "#0d9488", "#d97706", "#db2777"];
+    let nProj = 1;
+    function renderSwitch() {
+      $("proj-btns").innerHTML = [1, 2, 3, 4, 5].map((n) => `<button class="btn ${n === nProj ? "active" : ""}" data-n="${n}" style="${n === nProj ? "background:var(--accent);border-color:var(--accent);color:#fff" : ""}">${n}</button>`).join("");
+      const [each, lost] = WEINBERG[nProj - 1];
+      $("stack").innerHTML = Array.from({ length: nProj }, (_, i) =>
+        `<div style="flex:${each};background:${PCOL[i]}">${each >= 10 ? each + "%" : ""}</div>`).join("") +
+        (lost ? `<div class="lost" style="flex:${lost}">${lost}% lost</div>` : "");
+      $("sw-legend").innerHTML = `<span>Per project: <b>${each}%</b></span><span>Lost to switching: <b style="color:${lost ? "var(--bad)" : "var(--good)"}">${lost}%</b></span>`;
+    }
+    $("proj-btns").onclick = (e) => { const b = e.target.closest("[data-n]"); if (b) { nProj = +b.dataset.n; renderSwitch(); } };
+    renderSwitch();
+
+    /* ---------- Tuckman ---------- */
+    const TUCK = [
+      { e: "👋", n: "Forming", s: "Polite, unsure", x: 60, y: 100,
+        signs: ["Polite and cautious", "Unclear roles", "Lots of questions to the lead"],
+        tpm: "Set goals, roles and working agreements. Share the RACI early." },
+      { e: "⚡", n: "Storming", s: "Conflict", x: 230, y: 130,
+        signs: ["Disagreements on approach", "Pushback on process", "Cliques can form"],
+        tpm: "Don't suppress conflict. Make it about ideas, not people. Coach and mediate." },
+      { e: "🤝", n: "Norming", s: "Agreements", x: 400, y: 70,
+        signs: ["Shared norms emerge", "Feedback feels normal", "Roles are accepted"],
+        tpm: "Reinforce good habits. Step back and let the team own its process." },
+      { e: "🚀", n: "Performing", s: "High output", x: 600, y: 25,
+        signs: ["Self-organizing", "Solves its own problems", "High trust"],
+        tpm: "Protect the team from churn. Remove blockers. Delegate more." },
+      { e: "🎓", n: "Adjourning", s: "Wrap-up", x: 760, y: 110,
+        signs: ["Project ending", "Members moving on", "Mixed feelings"],
+        tpm: "Recognize the work, capture lessons learned and hand over cleanly (Ch 12)." },
+    ];
+    let tk = 1;
+    function renderTuck() {
+      $("tuck-btns").innerHTML = TUCK.map((t, i) => `<button class="btn ${i === tk ? "active" : ""}" data-tk="${i}" style="${i === tk ? "background:var(--accent);border-color:var(--accent);color:#fff" : ""}">${t.e} ${t.n}<small>${t.s}</small></button>`).join("");
+      $("tuck-dots").innerHTML = TUCK.map((t, i) => `<circle class="${i === tk ? "on" : ""}" cx="${t.x}" cy="${t.y}" r="${i === tk ? 10 : 7}"/>`).join("");
+      const t = TUCK[tk];
+      $("tuck-panel").innerHTML = `
+        <div><h4>${t.e} ${t.n}</h4><div style="font-size:14px;color:var(--muted)">${["Stage 1", "Stage 2", "Stage 3", "Stage 4", "Stage 5 (1977)"][tk]}</div></div>
+        <div><h4>Signs</h4>${list(t.signs)}</div>
+        <div class="tpm"><h4>🧑‍💼 Your move as TPM</h4>${t.tpm}</div>`;
+    }
+    $("tuck-btns").onclick = (e) => { const b = e.target.closest("[data-tk]"); if (b) { tk = +b.dataset.tk; renderTuck(); } };
+    renderTuck();
+
+    const ARI = [
+      ["Psychological safety", "People can take risks, ask questions and admit mistakes without fear. Team psychological safety was defined by Amy Edmondson (1999)."],
+      ["Dependability", "People finish quality work on time."],
+      ["Structure & clarity", "Clear roles, plans and goals. A RACI helps here."],
+      ["Meaning", "The work matters personally to each member."],
+      ["Impact", "People believe their work makes a difference."],
+    ];
+    let ai = 0;
+    function renderAri() {
+      $("ari").innerHTML = ARI.map(([n], i) => `<button class="btn ${i === ai ? "active" : ""}" data-ai="${i}" style="${i === ai ? "background:var(--accent);border-color:var(--accent);color:#fff" : ""}"><span class="n">${i + 1}</span>${n}</button>`).join("");
+      $("ari-detail").innerHTML = ARI[ai][1];
+    }
+    $("ari").onclick = (e) => { const b = e.target.closest("[data-ai]"); if (b) { ai = +b.dataset.ai; renderAri(); } };
+    renderAri();
+
+    const PY = [
+      ["Inattention to results", "Personal status or ego beats team goals.", "#e11d48"],
+      ["Avoidance of accountability", "People don't call out each other's low standards.", "#ea580c"],
+      ["Lack of commitment", "Without real debate, people don't buy in to decisions.", "#d97706"],
+      ["Fear of conflict", "Artificial harmony. Issues stay hidden.", "#0d9488"],
+      ["Absence of trust", "People won't be vulnerable or admit weaknesses.", "#5b4bdb"],
+    ];
+    let py = 4;
+    function renderPy() {
+      $("pyramid").innerHTML = PY.map(([n, , c], i) =>
+        `<button class="${i === py ? "active" : ""}" data-py="${i}" style="background:${c};width:${60 + i * 10}%">${n}</button>`).join("");
+      $("py-detail").innerHTML = `<b>${PY[py][0]}</b><br>${PY[py][1]}<br><span style="color:var(--muted);font-size:13px">Patrick Lencioni, <i>The Five Dysfunctions of a Team</i> (2002)</span>`;
+    }
+    $("pyramid").onclick = (e) => { const b = e.target.closest("[data-py]"); if (b) { py = +b.dataset.py; renderPy(); } };
+    renderPy();
+
+    /* ---------- Team Topologies ---------- */
+    const TT = [
+      { e: "🌊", n: "Stream-aligned", s: "Most teams", what: ["Owns a flow of work for a product or user journey", "Ships end to end"],
+        ex: ["Checkout team", "Mobile onboarding team"], tpm: "Your main delivery teams. Minimize their dependencies on others." },
+      { e: "🧱", n: "Platform", s: "Internal services", what: ["Provides self-service tools other teams use", "Treats teams as customers"],
+        ex: ["CI/CD platform", "Internal auth service"], tpm: "Track their roadmap. Your teams depend on it, so their delays become yours." },
+      { e: "🧑‍🏫", n: "Enabling", s: "Coaches", what: ["Helps teams adopt new skills or tools", "Temporary involvement"],
+        ex: ["Test automation coaches", "Security champions"], tpm: "Plan their time with a team as a fixed window, then hand off." },
+      { e: "🔬", n: "Complicated-subsystem", s: "Specialists", what: ["Owns a part that needs deep expertise", "Reduces load on other teams"],
+        ex: ["Video encoding engine", "Pricing algorithm"], tpm: "Often a bottleneck. Agree on interfaces and lead times early." },
+    ];
+    let tt = 0;
+    function renderTT() {
+      $("tt-types").innerHTML = TT.map((t, i) => `<button class="tt ${i === tt ? "active" : ""}" data-tt="${i}"><div class="e">${t.e}</div><b>${t.n}</b><small>${t.s}</small></button>`).join("");
+      const t = TT[tt];
+      $("tt-panel").innerHTML = `<div><h4>What it does</h4>${list(t.what)}</div><div><h4>Examples</h4>${list(t.ex)}</div><div><h4>🧑‍💼 TPM tip</h4><div style="font-size:14px">${t.tpm}</div></div>`;
+    }
+    $("tt-types").onclick = (e) => { const b = e.target.closest("[data-tt]"); if (b) { tt = +b.dataset.tt; renderTT(); } };
+    renderTT();
+
+    /* ---------- Try: fix this RACI ---------- */
+    const FX_ROLES = ["TPM", "Eng lead", "Dev", "QA", "Team"];
+    const FX = [
+      { task: "Write the API spec", row: ["I", "A", "R", "C", "-"], issue: "ok" },
+      { task: "Database migration", row: ["I", "A", "R", "-", "A"], issue: "twoA" },
+      { task: "Security review", row: ["C", "R", "C", "C", "C"], issue: "noA" },
+      { task: "Load testing", row: ["I", "A", "C", "C", "-"], issue: "noR" },
+      { task: "Pick the logging tool", row: ["C", "A", "R", "C", "C"], issue: "manyC" },
+      { task: "Sprint demo", row: ["I", "C", "R", "I", "A"], issue: "groupA" },
+      { task: "Release notes", row: ["A", "C", "R", "I", "I"], issue: "ok" },
+    ];
+    const FX_OPTS = [
+      ["twoA", "Two Accountables"], ["noA", "No Accountable"], ["noR", "No Responsible"],
+      ["manyC", "Too many Consulted"], ["groupA", "Accountable is a group, not a person"], ["ok", "Nothing wrong"],
+    ];
+    const FX_WHY = {
+      twoA: "Two A's means each assumes the other will sign off. Pick one person.",
+      noA: "Nobody owns the outcome. Someone must be able to say 'this is done'.",
+      noR: "An owner but no doer. Who actually runs the load test?",
+      manyC: "Three Cs, one of them the whole team, for a tooling choice. Cut it to the 1–2 who really matter, inform the rest.",
+      groupA: "'The team' can't be accountable. Accountability needs a name.",
+      ok: "This row follows the rules: one A, at least one R, few Cs.",
+    };
+    let fxSel = null; const fxDone = {};
+    function renderFx(fb) {
+      $("fx-table").innerHTML = `<thead><tr><th class="task">Task</th>${FX_ROLES.map((r) => `<th>${r}</th>`).join("")}</tr></thead>
+        <tbody>${FX.map((f, i) => `<tr class="fx-row ${fxDone[i] === true ? "solved" : fxDone[i] === false ? "wrong" : ""} ${fxSel === i ? "sel" : ""}" data-fx="${i}" tabindex="0" role="button" aria-label="Inspect ${f.task}">
+          <th class="task">${fxDone[i] === true ? "✅ " : ""}${f.task}</th>${f.row.map((x) => `<td><span class="tagv ${x === "-" ? "e" : "k-" + x}">${x === "-" ? "–" : x}</span></td>`).join("")}</tr>`).join("")}</tbody>`;
+      const found = FX.filter((f, i) => fxDone[i] === true && f.issue !== "ok").length;
+      if (fxSel === null) {
+        $("fx-panel").innerHTML = `<h4>👈 Tap a row</h4>${list(["Check for exactly one A", "Check for at least one R", "Count the Cs", "Is the A a real person?"])}
+          <p style="font-size:14px;color:var(--muted);margin:10px 0 0">Found ${found} of 5 problems.</p>`;
+        return;
+      }
+      $("fx-panel").innerHTML = `<h4>${FX[fxSel].task}: what's wrong?</h4>
+        <div class="fx-opts">${FX_OPTS.map(([k, t]) => `<button class="btn" data-ans="${k}">${t}</button>`).join("")}</div>
+        ${fb ? `<div class="fx-fb ${fb.ok ? "good" : "bad"}">${fb.ok ? "✓ " : "✗ Not quite. "}${fb.text}</div>` : ""}
+        <p style="font-size:14px;color:var(--muted);margin:10px 0 0">Found ${found} of 5 problems.${found === 5 ? " 🏆 All fixed!" : ""}</p>`;
+    }
+    $("try").addEventListener("click", (e) => {
+      const r = e.target.closest("[data-fx]");
+      if (r) { fxSel = +r.dataset.fx; renderFx(); return; }
+      const a = e.target.closest("[data-ans]");
+      if (a && fxSel !== null) {
+        const ok = a.dataset.ans === FX[fxSel].issue;
+        fxDone[fxSel] = ok ? true : (fxDone[fxSel] === true ? true : false);
+        renderFx({ ok, text: ok ? FX_WHY[FX[fxSel].issue] : "Look again at the letters in this row." });
+      }
+    });
+    renderFx();
+
+    /* ---------- Try: scenarios ---------- */
+    const SCN = [
+      { stage: "Forming", q: "A new team is very polite. Nobody challenges anything in planning.",
+        opts: ["Great, no conflict means it's working", "Set working agreements and invite dissent explicitly ('What could go wrong?')", "Make all the technical calls yourself to save time"],
+        best: 1, why: "Silence isn't agreement. Early norms and explicit invitations to disagree help the team move past polite forming." },
+      { stage: "Storming", q: "Two senior engineers clash in every design review. The rest go quiet.",
+        opts: ["Escalate both to their manager", "Pick the winner so the team can move on", "Separate the people from the problem: agree decision criteria, then compare options against them"],
+        best: 2, why: "Storming is normal. Shared criteria turn a personal fight into a structured decision. A DACI makes the final call clear." },
+      { stage: "Performing", q: "Your team is flying. Leadership wants to add 4 new people next sprint to go faster.",
+        opts: ["Accept: more people, more output", "Explain the cost: onboarding slows the team first and it may drop back to forming; propose a phased add", "Refuse outright"],
+        best: 1, why: "New people cost ramp-up and coordination time first (the effect behind Brooks's law). New members also reset team dynamics, so plan for the dip." },
+      { stage: "Adjourning", q: "The project ends next week and the team will be split up.",
+        opts: ["Just close the tickets and move on", "Run a lessons-learned session, recognize contributions and document the handover", "Keep the team together informally"],
+        best: 1, why: "Adjourning done well protects morale and keeps knowledge from walking out the door." },
+    ];
+    let si = 0; const sRes = [];
+    function renderScn(pick) {
+      const s = SCN[si], done = pick !== undefined;
+      $("scn").innerHTML = `<div class="scn-top"><span class="scn-stage">${si + 1} / ${SCN.length} · ${s.stage}</span>
+          <div class="dots">${SCN.map((_, i) => `<i class="${sRes[i] === true ? "good" : sRes[i] === false ? "bad" : ""}"></i>`).join("")}</div></div>
+        <div class="scn-q">${s.q}</div>
+        <div class="scn-opts">${s.opts.map((o, i) => `<button class="btn ${done && i === s.best ? "right" : ""} ${done && i === pick && i !== s.best ? "wrongpick" : ""}" data-sp="${i}" ${done ? "disabled" : ""}>${o}</button>`).join("")}</div>
+        <div class="scn-fb">${done ? `<b>${pick === s.best ? "✓ Good call." : "✗ Better option highlighted."}</b> ${s.why}` : ""}</div>
+        <div class="scn-nav">${done ? `<button class="btn primary" data-snext>${si < SCN.length - 1 ? "Next situation →" : "↺ Start over"}</button>` : ""}</div>`;
+    }
+    $("scn").onclick = (e) => {
+      const p = e.target.closest("[data-sp]");
+      if (p && !p.disabled) { const i = +p.dataset.sp; sRes[si] = i === SCN[si].best; renderScn(i); return; }
+      if (e.target.closest("[data-snext]")) {
+        if (si < SCN.length - 1) si++; else { si = 0; sRes.length = 0; }
+        renderScn();
+      }
+    };
+    renderScn();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"Who's accountable?\"", "Who owns the outcome and can say 'done'. Not who does the work.", "Can you give me one name, not a team?"],
+      ["\"She's at 120% allocation.\"", "Planned work exceeds her real capacity. Something will slip.", "What do we move, cut or delay to get her under 100%?"],
+      ["\"Let's DACI this decision.\"", "Name a Driver, one Approver, Contributors and who's Informed.", "Who is the Approver, and by when do we decide?"],
+      ["\"We're a platform team.\"", "They provide internal services other teams consume.", "What's your roadmap and SLA, and how do we request things?"],
+      ["\"They're still storming.\"", "The team is in the conflict stage that follows forming.", "What are the disagreements about, and do we have decision criteria?"],
+      ["\"Is it safe to raise this?\"", "A sign psychological safety may be low.", "How can we make bad news easy and early to share?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(5);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

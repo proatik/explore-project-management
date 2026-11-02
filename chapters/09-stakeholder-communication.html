@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Stakeholder Communication · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .seg .btn { min-height: 44px; }
+    .seg .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+    h4.cap { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .pill { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+    .pill.g { background: var(--good-soft); color: var(--good); }
+    .pill.a { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+    .pill.r { background: var(--bad-soft); color: var(--bad); }
+    .tag { font-size: 11px; font-weight: 800; letter-spacing: .06em; padding: 2px 8px; border-radius: 6px; margin-right: 6px; }
+    .tag.dec { background: var(--bad-soft); color: var(--bad); }
+    .tag.ask { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+    .tag.fyi { background: var(--accent-soft); color: var(--accent); }
+
+    /* ---------- Explore ---------- */
+    .week { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .week > div { flex: 1 1 calc(20% - 8px); min-width: 0; }
+    @media (max-width: 900px) { .week > div { flex-basis: calc(33.333% - 8px); } }
+    @media (max-width: 600px) { .week > div { flex-basis: calc(50% - 8px); } }
+    .week div { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+    .week b { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .controls { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-bottom: 18px; }
+    .msg { display: flex; flex-direction: column; }
+    .msg-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+    .msg-head b { color: var(--text); }
+    .msg-body { font-size: 14px; }
+    .msg-body p { margin: 0 0 8px; }
+    .msg-body ul { margin: 0; padding-left: 18px; }
+    .msg-body li { margin: 3px 0; }
+    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .meta div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+    .meta b { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .verdict { border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; margin-top: auto; }
+    .verdict.good { background: var(--good-soft); color: var(--good); }
+    .verdict.bad { background: var(--bad-soft); color: var(--bad); }
+
+    /* ---------- Plan ---------- */
+    .plan-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .plan-grid > .plan-card { flex: 0 1 calc(20% - 10px); min-width: 0; }
+    @media (max-width: 1000px) { .plan-grid > .plan-card { flex-basis: calc(33.333% - 8px); } }
+    @media (max-width: 640px) { .plan-grid > .plan-card { flex-basis: 100%; } }
+    .plan-card h3 { margin: 0 0 2px; font-size: 16px; }
+    .plan-card .why { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .plan-card label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin: 8px 0 4px; }
+    .plan-card select { width: 100%; min-height: 44px; font: inherit; padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); }
+    .fit { margin-top: 10px; font-size: 13px; font-weight: 600; border-radius: 10px; padding: 8px 10px; }
+    .fit.ok { background: var(--good-soft); color: var(--good); }
+    .fit.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+    .plan-sum { text-align: center; margin-top: 14px; font-weight: 700; }
+    .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 700px) { .modes { grid-template-columns: 1fr; } }
+    .modes .card h3 { margin: 4px 0 6px; font-size: 17px; }
+    .modes .e { font-size: 28px; }
+    .channels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+    @media (max-width: 700px) { .channels { grid-template-columns: 1fr; } }
+    .channels svg { width: 100%; max-width: 280px; height: auto; display: block; margin: 0 auto; }
+    .channels line { stroke: var(--accent); stroke-opacity: .35; stroke-width: 1.2; }
+    .channels circle { fill: var(--accent); }
+    .stepper-row { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 10px 0; }
+    .stepper-row .btn { width: 48px; min-height: 48px; padding: 0; font-size: 22px; }
+    .big { font-size: 44px; font-weight: 800; color: var(--accent); text-align: center; line-height: 1; }
+    .cad { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 14px; }
+    .cad .btn { min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 132px; }
+    .cad .btn small { font-weight: 600; color: var(--muted); }
+    .cad .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .cad .btn.active small { color: rgba(255,255,255,.85); }
+    .cad-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .cad-panel { grid-template-columns: 1fr 1fr; } }
+    .cad-panel div { background: var(--surface-2); border-radius: 12px; padding: 12px; font-size: 14px; }
+    .async { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .async { grid-template-columns: 1fr 1fr; } }
+    .async .card { padding: 16px; }
+    .async .card h3 { margin: 6px 0 4px; font-size: 15px; }
+    .async .card p { margin: 0; font-size: 13px; color: var(--muted); }
+
+    /* ---------- Status builder ---------- */
+    .rag-ctrls { display: flex; flex-direction: column; gap: 12px; }
+    .rag-row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: center; }
+    .rag-row > span { font-weight: 700; font-size: 14px; }
+    .rag-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .rag-btns .btn { min-height: 44px; padding: 6px; font-size: 13px; }
+    .rag-btns .btn.on.g { background: var(--good); border-color: var(--good); color: #fff; }
+    .rag-btns .btn.on.a { background: var(--warn); border-color: var(--warn); color: #fff; }
+    .rag-btns .btn.on.r { background: var(--bad); border-color: var(--bad); color: #fff; }
+    .opts { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .opt { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 600; text-align: left; color: var(--text); font-family: inherit; }
+    .opt .box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); flex: none; display: grid; place-items: center; font-size: 13px; color: #fff; }
+    .opt.on .box { background: var(--accent); border-color: var(--accent); }
+    .report { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+    .report-top { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .report-top h3 { margin: 0; font-size: 17px; }
+    .report-top small { color: var(--muted); }
+    .overall { font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 999px; }
+    .dims { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px 18px; border-bottom: 1px solid var(--line); text-align: center; font-size: 12px; color: var(--muted); }
+    .dims div { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+    .report-body { padding: 14px 18px; font-size: 14px; }
+    .report-body .bluf { font-weight: 700; margin: 0 0 12px; padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; }
+    .report-body h5 { margin: 12px 0 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .report-body ul { margin: 0; padding-left: 18px; }
+    .report-body li { margin: 3px 0; }
+    .checks { padding: 12px 18px; border-top: 1px dashed var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; margin-top: auto; }
+    .checks span.ok { color: var(--good); }
+    .checks span.no { color: var(--bad); }
+    .rag-def { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 700px) { .rag-def { grid-template-columns: 1fr; } }
+    .rag-def .card { border-top: 5px solid var(--line); }
+    .rag-def .card.g { border-top-color: var(--good); }
+    .rag-def .card.a { border-top-color: var(--warn); }
+    .rag-def .card.r { border-top-color: var(--bad); }
+    .rag-def h3 { margin: 0 0 6px; font-size: 16px; }
+    .scqa { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 900px) { .scqa { grid-template-columns: 1fr 1fr; } }
+    .scqa button { font: inherit; text-align: left; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 14px; padding: 12px; min-height: 120px; display: flex; flex-direction: column; gap: 6px; }
+    .scqa button b { font-size: 22px; color: var(--accent); }
+    .scqa button span { font-size: 13px; color: var(--muted); }
+    .scqa button.open span { color: var(--text); }
+    .pyramid { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px; }
+    .pyramid div { background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; text-align: center; font-size: 13px; font-weight: 600; }
+    .pyramid .row { display: flex; gap: 6px; background: none; padding: 0; }
+
+    /* ---------- Try ---------- */
+    .rw-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+    @media (max-width: 700px) { .rw-grid { grid-template-columns: 1fr; } }
+    .rw-line { display: flex; flex-direction: column; }
+    .rw-sum { margin-top: 16px; }
+    .rw-line .orig { font-size: 14px; color: var(--bad); margin-bottom: 8px; }
+    .rw-line .orig s { color: var(--muted); }
+    .rw-opts { display: flex; flex-direction: column; gap: 6px; }
+    .rw-opts .opt.right { border-color: var(--good); background: var(--good-soft); }
+    .rw-opts .opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+    .rw-why { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 1.4em; }
+    .rw-out { margin-top: 10px; }
+    .score { text-align: center; font-weight: 800; font-size: 18px; margin-top: 8px; min-height: 1.5em; }
+    .quiz-q { font-size: 18px; font-weight: 700; text-align: center; min-height: 54px; display: grid; place-items: center; margin: 8px 0 14px; }
+    .quiz-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .quiz-btns .btn { min-height: 52px; }
+    .quiz-btns .btn.right { background: var(--good-soft); border-color: var(--good); }
+    .quiz-btns .btn.wrong { background: var(--bad-soft); border-color: var(--bad); }
+    .quiz-fb { min-height: 44px; margin-top: 12px; font-size: 14px; text-align: center; }
+    .dots { display: flex; gap: 6px; justify-content: center; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+    .dots i.good { background: var(--good); }
+    .dots i.bad { background: var(--bad); }
+    .center { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 09 Stakeholder Communication</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 09 · Stakeholder Communication</div>
+      <h1>Tailor the message.<br>Never the truth.</h1>
+      <p>Who needs to hear what, when, and how. Plus status reports leaders actually read.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#learn">💡 Plan</a>
+        <a href="#status">🚦 Status</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Same week, four readers</h2>
+      <p class="sub">One project week. Pick a reader, then compare a tailored update with one report for everyone.</p>
+
+      <div class="week">
+        <div><b>✅ Shipped</b>Payments API on staging</div>
+        <div><b>⏳ Late</b>Checkout UI, 1 week (vendor SDK)</div>
+        <div><b>💰 Budget</b>On track, 48% spent</div>
+        <div><b>⚠️ Risk</b>App store review may delay launch</div>
+        <div><b>❓ Decision</b>Launch web first? Needed by Fri</div>
+      </div>
+
+      <div class="controls">
+        <div class="seg" id="readers"></div>
+        <div class="seg" id="mode"></div>
+      </div>
+
+      <div class="two">
+        <div class="card msg" id="msg"></div>
+        <div class="card msg" id="msg-why"></div>
+      </div>
+    </section>
+
+    <!-- ================= PLAN ================= -->
+    <section class="section" id="learn">
+      <span class="step-label">💡 Plan</span>
+      <h2>Plan who hears what</h2>
+      <p class="sub">A communication plan answers: who, what, why, how, how often, and who sends it. Pick a channel and frequency for each stakeholder.</p>
+
+      <div class="plan-grid" id="plan"></div>
+      <div class="plan-sum" id="plan-sum"></div>
+      <p class="sub" style="text-align:center;margin-top:8px">Mapping stakeholders by power and interest is covered in Chapter 01. This plan builds on that map.</p>
+
+      <h2 style="margin-top:40px">Push, pull, interactive</h2>
+      <p class="sub">PMBOK names three ways to communicate. Good plans mix all three.</p>
+      <div class="modes">
+        <div class="card"><div class="e">📤</div><h3>Push</h3>
+          <ul class="bullets"><li>You send it to specific people</li><li>Email, weekly status, release notes</li><li>Sent ≠ read ≠ understood</li></ul></div>
+        <div class="card"><div class="e">📚</div><h3>Pull</h3>
+          <ul class="bullets"><li>People fetch it when they need it</li><li>Wiki, dashboard, decision log</li><li>Great for large or occasional audiences</li></ul></div>
+        <div class="card"><div class="e">💬</div><h3>Interactive</h3>
+          <ul class="bullets"><li>Two-way, in real time</li><li>Meetings, calls, live chat</li><li>Best for bad news, conflict, decisions</li></ul></div>
+      </div>
+
+      <h2 style="margin-top:40px">Every new person adds lines</h2>
+      <p class="sub">Communication channels grow as n(n−1)/2. Add people and watch.</p>
+      <div class="card channels">
+        <div id="chan-svg"></div>
+        <div>
+          <div class="stepper-row">
+            <button class="btn" id="chan-minus" aria-label="Remove a person">−</button>
+            <div style="text-align:center"><div style="font-size:13px;color:var(--muted)">People</div><div style="font-size:28px;font-weight:800" id="chan-n"></div></div>
+            <button class="btn" id="chan-plus" aria-label="Add a person">+</button>
+          </div>
+          <div class="big" id="chan-count"></div>
+          <div style="text-align:center;color:var(--muted);font-size:13px;margin:6px 0 12px">communication channels</div>
+          <ul class="bullets" id="chan-notes"></ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:40px">Meeting cadence</h2>
+      <p class="sub">Each recurring meeting needs a clear job. Tap one.</p>
+      <div class="cad" id="cad"></div>
+      <div class="cad-panel" id="cad-panel"></div>
+
+      <h2 style="margin-top:40px">Async-first habits</h2>
+      <p class="sub">Write things down so fewer meetings are needed.</p>
+      <div class="async">
+        <div class="card"><div style="font-size:24px">📝</div><h3>Weekly written update</h3><p>Same format, same day. People learn where to look.</p></div>
+        <div class="card"><div style="font-size:24px">📒</div><h3>Decision log</h3><p>What was decided, by whom, why, and when. Ends repeat debates.</p></div>
+        <div class="card"><div style="font-size:24px">✅</div><h3>Notes with owners</h3><p>Every action item has one owner and a date.</p></div>
+        <div class="card"><div style="font-size:24px">🗓️</div><h3>No agenda, no meeting</h3><p>State the goal. If it fits in a message, send the message.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= STATUS ================= -->
+    <section class="section" id="status">
+      <span class="step-label">🚦 Status</span>
+      <h2>Build a RAG status report</h2>
+      <p class="sub">Set each dimension and the overall status, choose what to include, and watch the report and its quality checks update.</p>
+
+      <div class="two">
+        <div class="card">
+          <h4 class="cap">Status</h4>
+          <div class="rag-ctrls" id="rag-ctrls"></div>
+          <h4 class="cap" style="margin-top:18px">Include</h4>
+          <div class="opts" id="rag-opts"></div>
+        </div>
+        <div class="report" id="report"></div>
+      </div>
+
+      <h2 style="margin-top:40px">What the colors mean</h2>
+      <p class="sub">Agree on definitions up front. These are common ones; your company may differ.</p>
+      <div class="rag-def">
+        <div class="card g"><h3>🟢 Green</h3><ul class="bullets"><li>On track for scope, date and budget</li><li>No help needed</li></ul></div>
+        <div class="card a"><h3>🟠 Amber</h3><ul class="bullets"><li>At risk, but the team has a recovery plan</li><li>Leaders should watch, may need to help</li></ul></div>
+        <div class="card r"><h3>🔴 Red</h3><ul class="bullets"><li>Off track without outside help</li><li>Needs a decision or support now</li></ul></div>
+      </div>
+      <div class="two" style="margin-top:16px">
+        <div class="card"><h4 class="cap">🍉 Watermelon status</h4><ul class="bullets"><li>Green outside, red inside</li><li>Reports stay green until the week it's too late</li><li>Cause: people fear that red means blame</li><li>Fix: treat red as a request for help, not a failure</li></ul></div>
+        <div class="card"><h4 class="cap">🏷️ Label every item</h4><ul class="bullets"><li><span class="tag dec">DECISION</span>someone must choose, by a date</li><li><span class="tag ask">ASK</span>you need help or resources</li><li><span class="tag fyi">FYI</span>no action needed</li><li>Readers scan for their name and these labels</li></ul></div>
+      </div>
+
+      <h2 style="margin-top:40px">Write for executives</h2>
+      <p class="sub">Answer first. Barbara Minto's Pyramid Principle and the SCQA frame. Tap each letter.</p>
+      <div class="scqa" id="scqa"></div>
+      <div class="card" style="margin-top:12px">
+        <h4 class="cap">Pyramid: answer on top, support below</h4>
+        <div class="pyramid">
+          <div style="max-width:360px">Launch web first on 14 Mar; mobile follows on 21 Mar</div>
+          <div class="row"><div>Keeps the marketing date</div><div>Web is 70% of checkouts</div><div>Mobile risk is the vendor, not us</div></div>
+        </div>
+        <ul class="bullets" style="margin-top:12px"><li><b>BLUF</b>: bottom line up front. If they read one line, it's this one.</li><li>Group supporting points. Three is usually enough.</li></ul>
+      </div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Rewrite a bad status update</h2>
+      <p class="sub">Pick the best replacement for each line.</p>
+      <div class="rw-grid" id="rw"></div>
+      <div class="card msg rw-sum">
+        <h4 class="cap">Your rewritten update</h4>
+        <div class="msg-body rw-out" id="rw-out"></div>
+        <div class="score" id="rw-score"></div>
+        <div class="center"><button class="btn" id="rw-reset">Reset</button></div>
+      </div>
+
+      <h2 style="margin-top:40px">Which channel?</h2>
+      <p class="sub">Six situations. Pick the best way to communicate.</p>
+      <div class="card" style="max-width:680px;margin:0 auto" id="quiz"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When you hear…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li><b>Tailor</b> length, detail and channel to each reader. Keep the facts the same.</li>
+          <li><b>Bottom line up front</b>, and label every item: decision, ask or FYI.</li>
+          <li><b>Red is a request for help</b>, not a failure. Watermelon status hurts everyone.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const $ = (id) => document.getElementById(id);
+    const list = (a) => `<ul>${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+
+    /* ---------- Explore ---------- */
+    const READERS = [
+      { key: "ceo", name: "👔 CEO", channel: "2-line Slack DM", length: "2 sentences", when: "Only when it changes",
+        wants: "Is the launch date safe? Do they need to act?",
+        body: `<p><span class="tag dec">DECISION</span>Checkout launch is at risk by 1 week (vendor delay). Recommending web first on 14 Mar. Sponsor decides Friday.</p><p>Budget on track. No action needed from you.</p>`,
+        broadcast: "Stopped reading after the second line. Never saw the launch risk." },
+      { key: "sponsor", name: "🧑‍💼 Sponsor", channel: "Weekly email + 15 min call", length: "Half a page", when: "Weekly",
+        wants: "Status, risks, and the decision they own",
+        body: `<p><b>Overall: AMBER.</b> Launch at risk by 1 week due to the vendor SDK.</p>${list(["✅ Payments API on staging", "⏳ Checkout UI 1 week late", "💰 Budget on track (48%)"])}<p style="margin-top:8px"><span class="tag dec">DECISION</span>Web first on 14 Mar, or wait for mobile on 21 Mar? Needed by Fri.</p>`,
+        broadcast: "Found the decision on page 2, two days later. The Friday deadline slipped." },
+      { key: "eng", name: "👩‍💻 Engineering", channel: "Team channel + standup", length: "Detailed bullets", when: "Daily",
+        wants: "What's blocked, what's next, who owns what",
+        body: `${list(["🔧 Checkout: waiting on vendor SDK v3 (ETA Wed). Priya owns follow-up", "🧪 Payments API: 18/20 contract tests pass. Fix 2 by Tue", "📱 Prep web-first build flag in case sponsor approves"])}<p style="margin-top:8px"><span class="tag fyi">FYI</span>Decision on web-first comes Friday.</p>`,
+        broadcast: "Missing the technical detail they need. They ask the same questions in standup." },
+      { key: "client", name: "🤝 Client", channel: "Fortnightly call + summary", length: "Short, outcome-focused", when: "Every 2 weeks",
+        wants: "When can their customers use it? What do they need to do?",
+        body: `<p>Payments are working in our test environment. 🎉</p><p>We may launch on the web a week before mobile, to keep your marketing date. We'll confirm on Friday.</p><p><span class="tag ask">ASK</span>Please confirm your support team is ready for 14 Mar.</p>`,
+        broadcast: "Saw internal jargon and vendor blame. Lost confidence in the team." },
+    ];
+    const BROADCAST = `<p><b>Weekly project report, week 9</b></p>${list(["Sprint 9 velocity 34 pts (avg 31)", "PRs merged: 27, open: 6", "Contract tests 18/20 passing on payments-svc", "Vendor SDK v3 delayed, blocking checkout-ui", "Infra: staging cluster upgraded to k8s 1.30", "Budget: 48% spent at 50% schedule", "Risk register: 7 open items (see attachment)", "Decision: web-first launch? (see section 6.2)"])}`;
+    let reader = 0, tailored = true;
+    function renderExplore() {
+      $("readers").innerHTML = READERS.map((r, i) => `<button class="btn ${i === reader ? "active" : ""}" data-r="${i}">${r.name}</button>`).join("");
+      $("mode").innerHTML = [["✂️ Tailored", true], ["📢 Same report for all", false]]
+        .map(([l, v]) => `<button class="btn ${v === tailored ? "active" : ""}" data-m="${v}">${l}</button>`).join("");
+      const r = READERS[reader];
+      $("msg").innerHTML = `
+        <div class="msg-head"><span>To: <b>${r.name.slice(3)}</b></span><span>${tailored ? r.channel : "Email · 3-page PDF"}</span></div>
+        <div class="msg-body">${tailored ? r.body : BROADCAST}</div>`;
+      $("msg-why").innerHTML = `
+        <h4 class="cap">What this reader needs</h4>
+        <div class="meta">
+          <div><b>Length</b>${r.length}</div><div><b>Channel</b>${r.channel}</div>
+          <div><b>How often</b>${r.when}</div><div><b>They want</b>${r.wants}</div>
+        </div>
+        <div class="verdict ${tailored ? "good" : "bad"}">${tailored ? "✅ Right length, right channel, and the one thing they need is up top." : "❌ " + r.broadcast}</div>`;
+    }
+    $("explore").addEventListener("click", (e) => {
+      const r = e.target.closest("[data-r]"), m = e.target.closest("[data-m]");
+      if (r) reader = +r.dataset.r;
+      if (m) tailored = m.dataset.m === "true";
+      if (r || m) renderExplore();
+    });
+    renderExplore();
+
+    /* ---------- Plan ---------- */
+    const CHANNELS = ["Meeting", "Email / report", "Chat", "Wiki / dashboard"];
+    const FREQS = ["Daily", "Weekly", "Fortnightly", "Monthly", "On change only"];
+    const STAKE = [
+      { name: "🧑‍💼 Sponsor", why: "Owns the business case and big decisions", what: "Status, risks, decisions", ch: [0, 1], fr: [1, 2], hint: "Sponsors need a regular, two-way touchpoint for decisions." },
+      { name: "🏛️ Steering committee", why: "Approves scope, budget and priority changes", what: "Milestones, escalations", ch: [0], fr: [3], hint: "Steering decisions need a live meeting, usually monthly." },
+      { name: "👩‍💻 Engineering team", why: "Does the work and spots problems first", what: "Blockers, priorities, changes", ch: [0, 2], fr: [0], hint: "Teams need daily, fast, two-way contact." },
+      { name: "🤝 Client", why: "Accepts the result and plans around it", what: "Progress, dates, what they must do", ch: [0, 1], fr: [2, 1], hint: "Clients want a predictable, outcome-focused rhythm." },
+      { name: "🎧 Support lead", why: "Must be ready on launch day", what: "Release dates, changes, known issues", ch: [1, 3], fr: [4, 1], hint: "Support needs updates when things change, and a place to look things up." },
+    ];
+    const planPick = STAKE.map(() => ({ ch: 1, fr: 1 }));
+    function renderPlan() {
+      let good = 0;
+      $("plan").innerHTML = STAKE.map((s, i) => {
+        const p = planPick[i], ok = s.ch.includes(p.ch) && s.fr.includes(p.fr);
+        if (ok) good++;
+        return `<div class="card plan-card">
+          <h3>${s.name}</h3><div class="why">${s.why}<br><b>Needs:</b> ${s.what}</div>
+          <label for="pc${i}">Channel</label>
+          <select id="pc${i}" data-i="${i}" data-k="ch">${CHANNELS.map((c, j) => `<option value="${j}" ${j === p.ch ? "selected" : ""}>${c}</option>`).join("")}</select>
+          <label for="pf${i}">Frequency</label>
+          <select id="pf${i}" data-i="${i}" data-k="fr">${FREQS.map((c, j) => `<option value="${j}" ${j === p.fr ? "selected" : ""}>${c}</option>`).join("")}</select>
+          <div class="fit ${ok ? "ok" : "warn"}">${ok ? "✅ Good fit" : "💡 " + s.hint}</div>
+        </div>`;
+      }).join("");
+      $("plan-sum").textContent = `${good} / ${STAKE.length} stakeholders well covered`;
+    }
+    $("plan").addEventListener("change", (e) => {
+      const el = e.target.closest("select");
+      if (!el) return;
+      planPick[+el.dataset.i][el.dataset.k] = +el.value;
+      renderPlan();
+    });
+    renderPlan();
+
+    let n = 5;
+    function renderChannels() {
+      const c = n * (n - 1) / 2, R = 110, pts = [...Array(n)].map((_, i) => {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+        return [140 + R * Math.cos(a), 140 + R * Math.sin(a)];
+      });
+      let lines = "";
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) lines += `<line x1="${pts[i][0]}" y1="${pts[i][1]}" x2="${pts[j][0]}" y2="${pts[j][1]}"/>`;
+      $("chan-svg").innerHTML = `<svg viewBox="0 0 280 280" role="img" aria-label="${n} people, ${c} channels">${lines}${pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9"/>`).join("")}</svg>`;
+      $("chan-n").textContent = n;
+      $("chan-count").textContent = c;
+      $("chan-notes").innerHTML = [`${n} people → ${n}×${n - 1}÷2 = ${c}`, n >= 10 ? "Too many paths to keep everyone aligned by talking. Write it down." : "Small team: talking still scales.", "This is why a single written source of truth matters"].map((x) => `<li>${x}</li>`).join("");
+      $("chan-minus").disabled = n <= 2;
+      $("chan-plus").disabled = n >= 15;
+    }
+    $("chan-minus").onclick = () => { if (n > 2) { n--; renderChannels(); } };
+    $("chan-plus").onclick = () => { if (n < 15) { n++; renderChannels(); } };
+    renderChannels();
+
+    const CAD = [
+      { e: "☀️", name: "Daily standup", t: "15 min", purpose: "Sync on progress and blockers", who: "Delivery team", out: "Blockers named, owners clear", anti: "Turning into a status report to the manager" },
+      { e: "📊", name: "Weekly status", t: "30 min", purpose: "Review progress, risks and asks", who: "PM/TPM, leads, sponsor's delegate", out: "Updated RAID log and status", anti: "Reading the written update aloud" },
+      { e: "🎬", name: "Sprint review", t: "Every 1–4 weeks", purpose: "Show working product and get feedback", who: "Team and key stakeholders", out: "Feedback that shapes the backlog", anti: "Slides instead of a real demo" },
+      { e: "🏛️", name: "Steering committee", t: "Monthly", purpose: "Decisions, escalations, priorities", who: "Sponsor and senior leaders", out: "Recorded decisions with owners", anti: "No decisions asked for, just updates" },
+      { e: "📈", name: "Quarterly review", t: "Quarterly", purpose: "Outcomes vs goals, next quarter", who: "Leadership, product, delivery", out: "Adjusted goals and funding", anti: "Counting output instead of outcomes" },
+    ];
+    let cad = 0;
+    function renderCad() {
+      $("cad").innerHTML = CAD.map((c, i) => `<button class="btn ${i === cad ? "active" : ""}" data-c="${i}"><span>${c.e} ${c.name}</span><small>${c.t}</small></button>`).join("");
+      const c = CAD[cad];
+      $("cad-panel").innerHTML = `<div><h4 class="cap">Purpose</h4>${c.purpose}</div><div><h4 class="cap">Who</h4>${c.who}</div><div><h4 class="cap">Output</h4>${c.out}</div><div><h4 class="cap">⚠️ Anti-pattern</h4>${c.anti}</div>`;
+    }
+    $("cad").addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) { cad = +b.dataset.c; renderCad(); } });
+    renderCad();
+
+    /* ---------- Status builder ---------- */
+    const DIMS = ["Schedule", "Scope", "Budget", "Risk"];
+    const rag = { Overall: "a", Schedule: "a", Scope: "g", Budget: "g", Risk: "a" };
+    const inc = { bluf: true, path: true, ask: true, labels: false };
+    const INC = [["bluf", "Bottom line up front"], ["path", "Path to green for amber/red"], ["ask", "Ask with owner and date"], ["labels", "Label items (decision / ask / FYI)"]];
+    const NAMES = { g: "Green", a: "Amber", r: "Red" };
+    const rank = { g: 0, a: 1, r: 2 };
+    function renderStatus() {
+      $("rag-ctrls").innerHTML = ["Overall", ...DIMS].map((d) => `<div class="rag-row"><span>${d}</span><div class="rag-btns">${["g", "a", "r"].map((v) => `<button class="btn ${v} ${rag[d] === v ? "on" : ""}" data-d="${d}" data-v="${v}">${NAMES[v]}</button>`).join("")}</div></div>`).join("");
+      $("rag-opts").innerHTML = INC.map(([k, l]) => `<button class="opt ${inc[k] ? "on" : ""}" data-inc="${k}"><span class="box">${inc[k] ? "✓" : ""}</span>${l}</button>`).join("");
+
+      const worst = DIMS.reduce((w, d) => (rank[rag[d]] > rank[w] ? rag[d] : w), "g");
+      const watermelon = rank[rag.Overall] < rank[worst];
+      const needsPath = rag.Overall !== "g" || worst !== "g";
+      const L = (t, cls) => (inc.labels ? `<span class="tag ${cls}">${t}</span>` : "");
+      const bluf = rag.Overall === "g"
+        ? "On track for the 14 Mar launch. No decisions needed this week."
+        : rag.Overall === "a"
+          ? "Launch at risk by 1 week (vendor SDK). Recovery plan below; decision needed Fri."
+          : "Launch will miss 14 Mar without a decision. Need sponsor input by Fri.";
+      const checks = [
+        ["BLUF first", inc.bluf],
+        ["Path to green", !needsPath || inc.path],
+        ["Clear ask", inc.ask],
+        ["No watermelon", !watermelon],
+      ];
+      $("report").innerHTML = `
+        <div class="report-top"><div><h3>Customer Portal · Week 9</h3><small>Status report · PM: you</small></div>
+          <span class="overall pill ${rag.Overall}">Overall: ${NAMES[rag.Overall].toUpperCase()}</span></div>
+        <div class="dims">${DIMS.map((d) => `<div>${d}<span class="pill ${rag[d]}">${NAMES[rag[d]]}</span></div>`).join("")}</div>
+        <div class="report-body">
+          ${inc.bluf ? `<p class="bluf">${bluf}</p>` : ""}
+          <h5>Done this week</h5><ul><li>${L("FYI", "fyi")}Payments API deployed to staging</li><li>${L("FYI", "fyi")}18 of 20 contract tests passing</li></ul>
+          <h5>Next week</h5><ul><li>Fix the 2 failing tests</li><li>Prepare web-first release flag</li></ul>
+          ${needsPath && inc.path ? `<h5>Path to green</h5><ul><li>Web launch on 14 Mar, mobile on 21 Mar when the vendor SDK lands</li></ul>` : ""}
+          <h5>Risks &amp; asks</h5><ul><li>${L("ASK", "ask")}App store review may add 2–5 days. Submitting early</li>
+          ${inc.ask ? `<li>${L("DECISION", "dec")}<b>Sam:</b> approve web-first launch by <b>Fri 7 Mar</b></li>` : `<li>Let us know your thoughts on the launch plan</li>`}</ul>
+        </div>
+        <div class="checks">${checks.map(([l, ok]) => `<span class="${ok ? "ok" : "no"}">${ok ? "✅" : "❌"} ${l}</span>`).join("")}</div>
+        ${watermelon ? `<div class="verdict bad" style="margin:0 18px 14px">🍉 Overall is greener than ${NAMES[worst].toLowerCase()} parts. Readers will trust the color and miss the problem.</div>` : ""}`;
+    }
+    $("status").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-d]"), o = e.target.closest("[data-inc]");
+      if (b) rag[b.dataset.d] = b.dataset.v;
+      if (o) inc[o.dataset.inc] = !inc[o.dataset.inc];
+      if (b || o) renderStatus();
+    });
+    renderStatus();
+
+    const SCQA = [
+      ["S", "Situation", "Checkout launch is planned for 14 Mar with marketing booked."],
+      ["C", "Complication", "The vendor's SDK is a week late, so mobile checkout can't ship on time."],
+      ["Q", "Question", "Do we hold the whole launch, or ship web first?"],
+      ["A", "Answer", "Ship web on 14 Mar, mobile on 21 Mar. Approve by Friday."],
+    ];
+    const scqaOpen = new Set();
+    function renderScqa() {
+      $("scqa").innerHTML = SCQA.map(([l, n, t], i) => `<button class="${scqaOpen.has(i) ? "open" : ""}" data-s="${i}"><b>${l}</b><strong>${n}</strong><span>${scqaOpen.has(i) ? t : "Tap to see the example"}</span></button>`).join("");
+    }
+    $("scqa").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-s]");
+      if (!b) return;
+      const i = +b.dataset.s;
+      scqaOpen.has(i) ? scqaOpen.delete(i) : scqaOpen.add(i);
+      renderScqa();
+    });
+    renderScqa();
+
+    /* ---------- Try: rewrite ---------- */
+    const RW = [
+      { label: "Opening", bad: "Hi all, lots of progress this week, see details below.",
+        opts: [["Overall AMBER: launch at risk by 1 week (vendor SDK). Decision needed by Fri.", true], ["The team worked really hard this week!", false], ["Status: green-ish, mostly.", false]],
+        why: "The first line carries the status, the cause and the ask." },
+      { label: "Progress", bad: "Did a bunch of API work.",
+        opts: [["Worked on PRs #4412, #4415 and #4420.", false], ["Payments API on staging; 18 of 20 contract tests pass.", true], ["The API is basically done.", false]],
+        why: "Specific, measurable, and meaningful outside the team." },
+      { label: "Risk", bad: "There might be some issues with the vendor.",
+        opts: [["The vendor is being slow again, as usual.", false], ["No risks this week.", false], ["Risk: vendor SDK slips past 14 Mar → mobile checkout +1 week. Plan: web first. Owner: Priya.", true]],
+        why: "Cause, effect, plan and owner. No blame." },
+      { label: "Ask", bad: "Let us know your thoughts.",
+        opts: [["DECISION for Sam by Fri 7 Mar: web first (on time) or wait for mobile (+1 week)?", true], ["Please advise ASAP.", false], ["We'll discuss this at some point.", false]],
+        why: "Who decides, what the options are, and by when." },
+    ];
+    let rwPick = RW.map(() => null);
+    function renderRw() {
+      $("rw").innerHTML = RW.map((r, i) => `<div class="card rw-line">
+        <h4 class="cap">${i + 1}. ${r.label}</h4>
+        <div class="orig">❌ <s>${r.bad}</s></div>
+        <div class="rw-opts">${r.opts.map(([t, ok], j) => {
+          const st = rwPick[i] === null ? "" : j === rwPick[i] ? (ok ? "right" : "wrong") : "";
+          return `<button class="opt ${st}" data-l="${i}" data-o="${j}">${t}</button>`;
+        }).join("")}</div>
+        <div class="rw-why">${rwPick[i] === null ? "" : (r.opts[rwPick[i]][1] ? "✅ " : "💡 ") + r.why}</div>
+      </div>`).join("");
+      $("rw-out").innerHTML = RW.map((r, i) => {
+        const p = rwPick[i];
+        return `<p>${p === null ? `<span style="color:var(--muted)">${r.bad}</span>` : r.opts[p][0]}</p>`;
+      }).join("");
+      const done = rwPick.every((p) => p !== null);
+      const score = rwPick.filter((p, i) => p !== null && RW[i].opts[p][1]).length;
+      $("rw-score").textContent = done ? `${score === RW.length ? "🏆" : "👀"} ${score} / ${RW.length} strong lines` : `${rwPick.filter((p) => p !== null).length} / ${RW.length} lines rewritten`;
+    }
+    $("rw").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-o]");
+      if (!b) return;
+      rwPick[+b.dataset.l] = +b.dataset.o;
+      renderRw();
+    });
+    $("rw-reset").onclick = () => { rwPick = RW.map(() => null); renderRw(); };
+    renderRw();
+
+    /* ---------- Try: channel quiz ---------- */
+    const CH = ["💬 Live call / meeting", "⚡ Chat message", "📧 Email / written report", "📚 Doc / decision log"];
+    const QUIZ = [
+      ["Production is down and customers can't pay", 0, "Urgent and two-way: get people on a live call or incident bridge now. Write it up afterwards."],
+      ["Monthly progress update for the sponsor", 2, "A written report they can read when they choose. Follow up live if there's a decision."],
+      ["Recording why you chose Postgres over MongoDB", 3, "A decision log (or an architecture decision record) others can pull later."],
+      ["A quick question to a developer about an API field", 1, "Low stakes and quick: chat is fine."],
+      ["Telling the client the launch will be 2 weeks late", 0, "Bad news goes live, so they can react and ask questions. Then confirm in writing."],
+      ["The team's new code-review policy", 3, "Put it in the team docs as the source of truth, then point to it from chat or email."],
+    ];
+    let qi = 0, results = [], answered = null;
+    function renderQuiz() {
+      const dots = QUIZ.map((_, i) => `<i class="${results[i] === true ? "good" : results[i] === false ? "bad" : ""}"></i>`).join("");
+      if (qi >= QUIZ.length) {
+        const s = results.filter(Boolean).length;
+        $("quiz").innerHTML = `<div class="dots">${dots}</div><div class="quiz-q">${s >= 5 ? "🏆" : "👍"} ${s} / ${QUIZ.length}</div>
+          <p style="text-align:center;color:var(--muted);margin:0">Urgent or emotional → live. Reference → written and pullable.</p>
+          <div class="center"><button class="btn primary" data-retry>Try again</button></div>`;
+        return;
+      }
+      const [q, right, why] = QUIZ[qi];
+      $("quiz").innerHTML = `<div class="dots">${dots}</div><div class="quiz-q">${q}</div>
+        <div class="quiz-btns">${CH.map((c, j) => {
+          const st = answered === null ? "" : j === right ? "right" : j === answered ? "wrong" : "";
+          return `<button class="btn ${st}" data-a="${j}" ${answered !== null ? "disabled" : ""}>${c}</button>`;
+        }).join("")}</div>
+        <div class="quiz-fb">${answered === null ? `<span style="color:var(--muted)">Think: how urgent, how sensitive, and will people need it later?</span>` : (answered === right ? "✅ " : "❌ ") + why}</div>
+        ${answered !== null ? `<div class="center"><button class="btn primary" data-next>Next →</button></div>` : ""}`;
+    }
+    $("quiz").addEventListener("click", (e) => {
+      const a = e.target.closest("[data-a]");
+      if (a && answered === null) { answered = +a.dataset.a; results[qi] = answered === QUIZ[qi][1]; renderQuiz(); return; }
+      if (e.target.closest("[data-next]")) { qi++; answered = null; renderQuiz(); return; }
+      if (e.target.closest("[data-retry]")) { qi = 0; results = []; answered = null; renderQuiz(); }
+    });
+    renderQuiz();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"Can you send a status update?\"", "They want to know if they need to act.", "Who's the audience, and is there a decision they need to make?"],
+      ["\"Why is it amber?\"", "They want the cause and whether you have a plan.", "Can I walk you through the cause, the recovery plan, and when we expect green?"],
+      ["\"Keep me in the loop.\"", "They want visibility, not every detail.", "Would the weekly update work, or do you want a heads-up only on changes?"],
+      ["\"Let's take it offline.\"", "This topic is derailing the meeting.", "Who needs to be there, and when? Then actually schedule it."],
+      ["\"Bottom line up front.\"", "Lead with the conclusion or the ask.", "If they read only one sentence, what must it say?"],
+      ["\"This needs a steering committee.\"", "The decision is above the project team's authority.", "What decision exactly, what are the options, and what do we recommend?"],
+    ];
+    $("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(9);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

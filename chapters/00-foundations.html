@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <title>Foundations · PM/TPM</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style data-page>
+    /* ---------- Explore: project or operations ---------- */
+    .sorter { max-width: 620px; margin: 0 auto; text-align: center; }
+    .sort-item { font-size: 22px; font-weight: 800; min-height: 64px; display: grid; place-items: center; margin: 14px 0 6px; }
+    .sort-meta { color: var(--muted); font-size: 14px; min-height: 22px; }
+    .sort-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px auto 0; max-width: 420px; }
+    .sort-btns .btn { min-height: 52px; font-size: 16px; }
+    .sort-fb { min-height: 48px; margin-top: 16px; font-weight: 600; color: var(--muted); }
+    .sort-fb.good { color: var(--good); }
+    .sort-fb.bad { color: var(--bad); }
+    .dots { display: flex; gap: 6px; justify-content: center; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+    .dots i.good { background: var(--good); }
+    .dots i.bad { background: var(--bad); }
+    .rule { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+    .rule span { font-size: 13px; background: var(--surface-2); padding: 6px 12px; border-radius: 999px; }
+
+    /* ---------- Explore: nesting ---------- */
+    .nest-wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: stretch; margin-top: 40px; }
+    @media (max-width: 700px) { .nest-wrap { grid-template-columns: 1fr; } }
+    .lvl { border: 2px dashed var(--line); border-radius: 16px; padding: 12px; cursor: pointer; transition: border-color .2s, background .2s; }
+    .lvl.on { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+    .lvl-t { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-height: 24px; display: flex; align-items: center; gap: 6px; }
+    .lvl.on > .lvl-t { color: var(--accent); }
+    .lvl-row { display: grid; gap: 10px; margin-top: 10px; }
+    .lvl-row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lvl.leaf { background: var(--surface); min-height: 56px; display: flex; align-items: center; }
+    .lvl.leaf .lvl-n { font-size: 14px; font-weight: 700; }
+    .prod-bar { margin-top: 12px; }
+    .prod-track { position: relative; height: 44px; border-radius: 12px; background: var(--surface-2); margin-top: 8px; }
+    .prod-track i { position: absolute; top: 8px; height: 28px; border-radius: 8px; background: var(--accent); opacity: .85; font-style: normal; font-size: 11px; font-weight: 700; color: #fff; display: grid; place-items: center; }
+    .nest-panel h3 { margin: 4px 0 6px; font-size: 22px; }
+    .nest-panel .def { color: var(--muted); margin-bottom: 12px; }
+    .nest-panel h4, .panel-h { margin: 12px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+
+    /* ---------- Learn: iron triangle ---------- */
+    .tri-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+    @media (max-width: 700px) { .tri-wrap { grid-template-columns: 1fr; } }
+    .tri-svg { width: 100%; max-width: 380px; display: block; margin: 0 auto; }
+    .tri-svg text { fill: var(--text); font-family: var(--font); font-weight: 800; font-size: 15px; }
+    .tri-svg .val { fill: var(--muted); font-weight: 600; font-size: 13px; }
+    .tri-svg .base { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: 4 6; }
+    .tri-svg .shape { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 3; transition: all .4s; }
+    .tri-svg .q { transition: all .4s; }
+    .ctl label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin: 0 0 8px; }
+    .ctl input[type=range] { width: 100%; height: 44px; accent-color: var(--accent); }
+    .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .seg .btn { min-height: 44px; padding: 8px 6px; font-size: 14px; }
+    .seg .btn.active, .tabs .btn.active, .role-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .meters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
+    .meter { background: var(--surface-2); border-radius: 12px; padding: 10px; text-align: center; }
+    .meter b { display: block; font-size: 20px; }
+    .meter span { font-size: 12px; color: var(--muted); }
+    .meter.warn b { color: var(--warn); }
+    .meter.bad b { color: var(--bad); }
+    .verdict { font-weight: 700; min-height: 48px; }
+    .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+    /* ---------- Learn: lifecycle ---------- */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
+    .tabs .btn { min-height: 44px; }
+    .lane { display: flex; gap: 6px; align-items: stretch; margin: 6px 0; }
+    .blk { flex: 1; min-width: 0; border-radius: 10px; padding: 10px 6px; text-align: center; font-size: 12px; font-weight: 700; background: var(--surface-2); }
+    .blk.plan { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+    .blk.build { background: color-mix(in srgb, var(--good) 22%, var(--surface)); }
+    .blk.ship { background: var(--good); color: #fff; }
+    .value-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .lc-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+    @media (max-width: 700px) { .lc-meta { grid-template-columns: 1fr; } }
+    .lc-meta div { background: var(--surface-2); border-radius: 12px; padding: 12px; }
+    .lc-meta h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .lc-meta p { margin: 0; font-size: 14px; }
+
+    /* ---------- PMBOK ---------- */
+    .domains { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .domains { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .dom { text-align: left; min-height: 88px; display: flex; flex-direction: column; gap: 4px; padding: 14px; }
+    .dom .e { font-size: 24px; }
+    .dom .t { font-weight: 800; font-size: 14px; }
+    .dom.active { border-color: var(--accent); background: var(--accent-soft); }
+    .detail { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+    @media (max-width: 700px) { .detail { grid-template-columns: 1fr; } }
+    .detail .tpm { background: var(--accent-soft); border-radius: 12px; padding: 12px; }
+    .principles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    @media (max-width: 900px) { .principles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .pr { min-height: 64px; font-size: 13px; text-align: left; padding: 10px 12px; display: flex; gap: 8px; align-items: center; }
+    .pr .n { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--surface-2); }
+    .pr.active { border-color: var(--accent); background: var(--accent-soft); }
+    .pr.active .n { background: var(--accent); color: #fff; }
+    .pr-panel { margin-top: 12px; min-height: 76px; }
+
+    /* ---------- Roles ---------- */
+    .team { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 20px; }
+    @media (max-width: 700px) { .team { grid-template-columns: 1fr; } }
+    .roles { display: flex; flex-direction: column; gap: 8px; }
+    .role-btn { text-align: left; display: flex; gap: 10px; align-items: center; min-height: 48px; }
+    .role-panel h3 { margin: 0 0 4px; font-size: 22px; }
+    .role-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+    @media (max-width: 520px) { .role-cols { grid-template-columns: 1fr; } }
+    .role-cols h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+    .say-q { margin-top: 14px; background: var(--surface-2); border-radius: 12px; padding: 12px; font-style: italic; }
+    .decide { display: grid; gap: 10px; margin-top: 24px; }
+    .drow { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; align-items: center; padding: 12px 14px; }
+    @media (max-width: 700px) { .drow { grid-template-columns: 1fr; } }
+    .drow .q { font-weight: 700; }
+    .drow .lbl { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 4px; }
+    .pill { display: inline-block; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; margin: 2px 4px 2px 0; }
+    .pill.d { background: var(--accent); color: #fff; }
+    .pill.c { background: var(--surface-2); color: var(--text); }
+    .decide-head { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; padding: 0 14px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    @media (max-width: 700px) { .decide-head { display: none; } }
+    @media (min-width: 701px) { .drow .lbl { display: none; } }
+
+    /* ---------- Try ---------- */
+    .quiz-card { text-align: center; max-width: 640px; margin: 0 auto; }
+    .quiz-q { font-size: 20px; font-weight: 700; min-height: 84px; display: grid; place-items: center; margin: 14px 0 18px; }
+    .quiz-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .quiz-opts .btn { min-height: 52px; }
+    .quiz-opts .btn.ok { background: var(--good-soft); border-color: var(--good); }
+    .quiz-opts .btn.no { background: var(--bad-soft); border-color: var(--bad); }
+    .quiz-fb { min-height: 48px; margin-top: 16px; font-weight: 600; color: var(--muted); }
+    .quiz-fb.good { color: var(--good); }
+    .quiz-fb.bad { color: var(--bad); }
+    .quiz-next { margin-top: 8px; }
+
+    /* ---------- TPM lens ---------- */
+    .say { font-size: 20px; font-weight: 700; }
+    .flip-back .lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-top: 8px; }
+    .flip-back .lbl:first-child { margin-top: 0; }
+    .flip-back p { margin: 2px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../index.html">PM<span>/</span>TPM</a>
+      <span class="crumb">/ 00 Foundations</span>
+      <div class="spacer"></div>
+      <div class="progress-pill"></div>
+    </div>
+  </header>
+
+  <main class="wrap view" id="app">
+    <section class="hero">
+      <div class="kicker">Chapter 00 · Foundations</div>
+      <h1>Temporary. Unique.<br>Delivered.</h1>
+      <p>What a project is, what limits it, and who decides what.</p>
+      <nav class="stepper">
+        <a href="#explore">🧭 Explore</a>
+        <a href="#learn">💡 Learn</a>
+        <a href="#pmbok">📘 PMBOK 7</a>
+        <a href="#roles">👥 Roles</a>
+        <a href="#try">🛠️ Try</a>
+        <a href="#lens">🗣️ TPM Lens</a>
+      </nav>
+    </section>
+
+    <!-- ================= EXPLORE ================= -->
+    <section class="section" id="explore">
+      <span class="step-label">🧭 Explore</span>
+      <h2>Project or operations?</h2>
+      <p class="sub">Eight pieces of work. Make the call for each one.</p>
+
+      <div class="card sorter" id="sorter"></div>
+
+      <h2 style="margin-top:48px">Portfolio › Program › Project</h2>
+      <p class="sub">Tap a level to see how work nests, and where the product fits.</p>
+      <div class="nest-wrap">
+        <div class="card" id="nest">
+          <div class="lvl" data-lvl="portfolio">
+            <div class="lvl-t">🗂️ Portfolio · 2027 digital initiatives</div>
+            <div class="lvl" data-lvl="program" style="margin-top:8px">
+              <div class="lvl-t">🧩 Program · Launch in Germany</div>
+              <div class="lvl-row two">
+                <div class="lvl leaf" data-lvl="project"><div class="lvl-n">📅 Add SEPA payments</div></div>
+                <div class="lvl leaf" data-lvl="project"><div class="lvl-n">📅 German UI + legal texts</div></div>
+              </div>
+            </div>
+            <div class="lvl-row two">
+              <div class="lvl leaf" data-lvl="project"><div class="lvl-n">📅 Migrate DB to Postgres</div></div>
+              <div class="lvl leaf" data-lvl="ops"><div class="lvl-n">⚙️ On-call &amp; support</div></div>
+            </div>
+          </div>
+          <div class="lvl prod-bar" data-lvl="product">
+            <div class="lvl-t">📦 Product · Checkout (lives on)</div>
+            <div class="prod-track">
+              <i style="left:4%;width:22%">v1 project</i>
+              <i style="left:38%;width:18%">SEPA</i>
+              <i style="left:68%;width:24%">Redesign</i>
+            </div>
+          </div>
+        </div>
+        <div class="card nest-panel" id="nest-panel"></div>
+      </div>
+    </section>
+
+    <!-- ================= LEARN ================= -->
+    <section class="section" id="learn">
+      <span class="step-label">💡 Learn</span>
+      <h2>The iron triangle</h2>
+      <p class="sub">Push scope up and something else has to give. Pick what flexes.</p>
+
+      <div class="tri-wrap">
+        <div class="card">
+          <svg class="tri-svg" viewBox="0 0 380 330" role="img" aria-label="Scope, time and cost triangle with quality in the middle">
+            <polygon class="base" id="tri-base"/>
+            <polygon class="shape" id="tri-shape"/>
+            <circle class="q" id="tri-q" cx="190" cy="206" r="34"/>
+            <text id="tri-qt" x="190" y="211" text-anchor="middle" style="fill:#fff;font-size:13px">Quality</text>
+            <text id="lb-s" text-anchor="middle">Scope</text>
+            <text id="lb-t" text-anchor="middle">Time</text>
+            <text id="lb-c" text-anchor="middle">Cost</text>
+          </svg>
+        </div>
+        <div class="card ctl">
+          <label>What is allowed to flex?</label>
+          <div class="seg" id="flex-seg">
+            <button class="btn active" data-flex="time">⏱️ Time</button>
+            <button class="btn" data-flex="cost">💰 Cost</button>
+            <button class="btn" data-flex="quality">🧪 Quality</button>
+          </div>
+          <label for="scope">📦 Scope: <span id="scope-v">100%</span> of the original plan</label>
+          <input type="range" id="scope" min="60" max="160" step="10" value="100">
+          <div class="meters" id="meters"></div>
+          <div class="verdict" id="tri-verdict"></div>
+          <div class="note">Numbers are illustrative. Real effort rarely scales linearly.</div>
+        </div>
+      </div>
+      <ul class="bullets" style="margin-top:16px">
+        <li>Also called the <b>triple constraint</b>. PMI's PMBOK Guide widens it: scope, schedule, cost, quality, resources and risk all trade off.</li>
+        <li>The first question on any change: <b>which constraint is fixed?</b> (e.g. a launch date, a budget, a regulation).</li>
+      </ul>
+
+      <h2 style="margin-top:48px">Three ways to run the lifecycle</h2>
+      <p class="sub">PMBOK 7 calls these development approaches. Tap each one.</p>
+      <div class="card">
+        <div class="tabs" id="lc-tabs"></div>
+        <div id="lc-body"></div>
+      </div>
+    </section>
+
+    <!-- ================= PMBOK ================= -->
+    <section class="section" id="pmbok">
+      <span class="step-label">📘 PMBOK 7</span>
+      <h2>8 performance domains</h2>
+      <p class="sub">PMI's PMBOK Guide (7th ed.) groups project work into areas that run in parallel, not phases.</p>
+      <div class="domains" id="domains"></div>
+      <div class="card detail" id="dom-detail" style="margin-top:14px"></div>
+
+      <h2 style="margin-top:48px">12 principles</h2>
+      <p class="sub">The values behind good project work. Tap one.</p>
+      <div class="principles" id="principles"></div>
+      <div class="card pr-panel" id="pr-panel"></div>
+    </section>
+
+    <!-- ================= ROLES ================= -->
+    <section class="section" id="roles">
+      <span class="step-label">👥 Roles</span>
+      <h2>Six roles people mix up</h2>
+      <p class="sub">Titles vary by company. Accountabilities matter more. Tap a role.</p>
+      <div class="team">
+        <div class="roles" id="roles-list"></div>
+        <div class="card role-panel" id="role-panel"></div>
+      </div>
+
+      <h2 style="margin-top:48px">Who decides?</h2>
+      <p class="sub">A typical split in a product company running Scrum.</p>
+      <div class="decide-head"><span>Decision</span><span>Decides</span><span>Gives input</span></div>
+      <div class="decide" id="decide"></div>
+    </section>
+
+    <!-- ================= TRY ================= -->
+    <section class="section" id="try">
+      <span class="step-label">🛠️ Try</span>
+      <h2>Whose call is it?</h2>
+      <p class="sub">Eight real situations. Pick who owns the decision.</p>
+      <div class="card quiz-card" id="quiz"></div>
+    </section>
+
+    <!-- ================= TPM LENS ================= -->
+    <section class="section" id="lens">
+      <span class="step-label">🗣️ TPM Lens</span>
+      <h2>When someone says…</h2>
+      <p class="sub">Flip a card to see what it means and what you should ask.</p>
+      <div class="grid grid-3" id="lens-cards"></div>
+    </section>
+
+    <!-- ================= WRAP ================= -->
+    <section class="section">
+      <div class="done-banner">
+        <h3>🎯 Key takeaways</h3>
+        <ul class="bullets" style="display:inline-block;text-align:left;margin:8px 0 20px">
+          <li>A project is <b>temporary and unique</b>. Operations keep the lights on.</li>
+          <li>Every change trades scope, time, cost and quality. First ask <b>which one is fixed</b>.</li>
+          <li>Product decides <b>what</b>, engineering decides <b>how</b>, you make sure it <b>happens</b>.</li>
+        </ul>
+        <div><button class="btn primary" id="mark-done">Mark chapter as complete</button></div>
+      </div>
+      <nav class="chapter-nav"></nav>
+    </section>
+  </main>
+
+  <footer class="footer"></footer>
+
+  <script type="text/page-script">
+    const list = (a) => `<ul class="bullets">${a.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+
+    /* ---------- Explore: project or operations ---------- */
+    const SORT = [
+      ["Migrate the main database from MySQL to Postgres", "project", "Has a start, an end and a unique result: the database runs on Postgres."],
+      ["Run the monthly payroll", "ops", "Repeats every month with the same process. That's operations."],
+      ["Launch the mobile app v1", "project", "One-time effort that creates something new. Classic project."],
+      ["Staff the on-call rotation", "ops", "Ongoing and never \"done\". It keeps the service running."],
+      ["Redesign the checkout flow", "project", "Temporary, with a defined outcome. When it ships, the project closes."],
+      ["Apply the quarterly security patches", "ops", "Routine and repeatable. A runbook, not a plan."],
+      ["Get SOC 2 certified for the first time", "project", "A first-time certification is unique work with a finish line. Keeping it later is operations."],
+      ["Take nightly backups", "ops", "Repeats forever by design."],
+    ];
+    let si = 0, sres = [], sfb = null;
+    const sorter = document.getElementById("sorter");
+    function renderSort() {
+      const dots = SORT.map((_, i) => `<i class="${sres[i] === true ? "good" : sres[i] === false ? "bad" : ""}"></i>`).join("");
+      if (si >= SORT.length) {
+        const score = sres.filter(Boolean).length;
+        sorter.innerHTML = `<div class="dots">${dots}</div>
+          <div class="sort-item">${score >= 7 ? "🏆" : score >= 5 ? "👍" : "🌱"} ${score} / ${SORT.length}</div>
+          <div class="rule"><span>📅 Project = temporary</span><span>✨ Project = unique result</span><span>🔁 Operations = ongoing, repeatable</span></div>
+          <div style="margin-top:18px"><button class="btn primary" data-sort-retry>Try again</button></div>`;
+        return;
+      }
+      sorter.innerHTML = `<div class="dots">${dots}</div>
+        <div class="sort-item">${SORT[si][0]}</div>
+        <div class="sort-meta">${si + 1} of ${SORT.length}</div>
+        <div class="sort-btns">
+          <button class="btn" data-sort="project">📅 Project</button>
+          <button class="btn" data-sort="ops">🔁 Operations</button>
+        </div>
+        <div class="sort-fb ${sfb ? sfb.cls : ""}">${sfb ? sfb.text : "Is it temporary with a unique result, or does it repeat?"}</div>`;
+    }
+    sorter.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.hasAttribute("data-sort-retry")) { si = 0; sres = []; sfb = null; return renderSort(); }
+      if (!b.dataset.sort) return;
+      const [, ans, why] = SORT[si];
+      const ok = b.dataset.sort === ans;
+      sres[si] = ok;
+      sfb = { cls: ok ? "good" : "bad", text: `${ok ? "✓ Right." : "✗ It's " + (ans === "ops" ? "operations" : "a project") + "."} ${why}` };
+      si++;
+      renderSort();
+    });
+    renderSort();
+
+    /* ---------- Explore: nesting ---------- */
+    const LVL = {
+      portfolio: { icon: "🗂️", name: "Portfolio", def: "Projects, programs and operations managed together to reach strategic goals.",
+        ex: ["All 2027 digital initiatives", "Chosen and funded by leadership"], q: "Does this work support a strategic goal, or should we stop it?" },
+      program: { icon: "🧩", name: "Program", def: "Related projects coordinated to get benefits you can't get from running them separately.",
+        ex: ["Launch in Germany = payments + localization + legal", "One launch date, shared dependencies"], q: "Which project is on the critical path for the whole launch?" },
+      project: { icon: "📅", name: "Project", def: "A temporary endeavor to create a unique product, service or result (PMBOK).",
+        ex: ["Add SEPA payments", "Has a start, an end and a defined outcome"], q: "What does done look like, and when?" },
+      ops: { icon: "⚙️", name: "Operations", def: "Ongoing, repeatable work that keeps the business running.",
+        ex: ["On-call, support, payroll, backups", "Never 'finishes'. Measured by service levels"], q: "Who owns this after the project hands it over?" },
+      product: { icon: "📦", name: "Product", def: "Something that lives on and creates value over time. Many projects change it.",
+        ex: ["Checkout: v1, then SEPA, then a redesign", "A product lifecycle outlives every project in it"], q: "Who owns the product once our project ends?" },
+    };
+    const nest = document.getElementById("nest"), nestPanel = document.getElementById("nest-panel");
+    function showLvl(el) {
+      nest.querySelectorAll(".lvl").forEach((x) => x.classList.toggle("on", x === el));
+      const d = LVL[el.dataset.lvl];
+      nestPanel.innerHTML = `<div style="font-size:36px">${d.icon}</div><h3>${d.name}</h3>
+        <div class="def">${d.def}</div><h4>Example</h4>${list(d.ex)}<h4>💬 You ask</h4>${d.q}`;
+    }
+    nest.addEventListener("click", (e) => { const el = e.target.closest("[data-lvl]"); if (el) showLvl(el); });
+    showLvl(nest.querySelector('[data-lvl="program"]'));
+
+    /* ---------- Learn: iron triangle ---------- */
+    let flex = "time";
+    const scopeEl = document.getElementById("scope");
+    function renderTri() {
+      const S = +scopeEl.value;
+      let T = 100, C = 100, Q = 100;
+      if (flex === "time") T = S;
+      else if (flex === "cost") C = S;
+      else if (S > 100) Q = Math.max(20, 100 - (S - 100) * 1.3);
+      else { T = S; C = S; }
+      document.getElementById("scope-v").textContent = S + "%";
+      const cx = 190, cy = 206, k = (v) => 0.5 + v / 300;
+      const xy = (x, y, v) => [cx + (x - cx) * k(v), cy + (y - cy) * k(v)];
+      const pts = (a) => a.map((p) => p.join(",")).join(" ");
+      const [s, t, c] = [xy(190, 40, S), xy(40, 290, T), xy(340, 290, C)];
+      document.getElementById("tri-base").setAttribute("points", pts([xy(190, 40, 100), xy(40, 290, 100), xy(340, 290, 100)]));
+      document.getElementById("tri-shape").setAttribute("points", pts([s, t, c]));
+      const place = (id, [x, y], dy) => { const el = document.getElementById(id); el.setAttribute("x", x); el.setAttribute("y", y + dy); };
+      place("lb-s", s, -12); place("lb-t", t, 24); place("lb-c", c, 24);
+      const q = document.getElementById("tri-q");
+      q.setAttribute("r", 18 + Q * 0.18);
+      q.style.fill = Q >= 90 ? "var(--good)" : Q >= 60 ? "var(--warn)" : "var(--bad)";
+      const cls = (v) => (v > 130 ? "bad" : v > 100 ? "warn" : "");
+      document.getElementById("meters").innerHTML = [["📦", "Scope", S, cls(S)], ["⏱️", "Time", T, cls(T)], ["💰", "Cost", C, cls(C)], ["🧪", "Quality", Math.round(Q), Q < 60 ? "bad" : Q < 90 ? "warn" : ""]]
+        .map(([e, n, v, c]) => `<div class="meter ${c}"><b>${e} ${v}%</b><span>${n}</span></div>`).join("");
+      let v;
+      if (S === 100) v = "✅ The plan as agreed. Every constraint is in balance.";
+      else if (S < 100) v = flex === "quality" ? "✂️ Less scope frees time and cost. Quality stays protected." : `✂️ Cutting scope saves ${flex}. Often the healthiest lever.`;
+      else if (flex === "time") v = "📅 Same team, same budget, more work: the date moves.";
+      else if (flex === "cost") v = "👥 Same date: you pay for more people or vendors. Adding people late can slow a team down first (Brooks's law).";
+      else v = "🚨 Nothing else moves, so quality pays: less testing, more bugs, more tech debt.";
+      document.getElementById("tri-verdict").textContent = v;
+    }
+    document.getElementById("flex-seg").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-flex]");
+      if (!b) return;
+      flex = b.dataset.flex;
+      document.querySelectorAll("#flex-seg .btn").forEach((x) => x.classList.toggle("active", x === b));
+      renderTri();
+    });
+    scopeEl.addEventListener("input", renderTri);
+    scopeEl.value = 130;
+    renderTri();
+
+    /* ---------- Learn: lifecycle ---------- */
+    const LC = [
+      { tab: "📐 Predictive", lanes: [[["plan", "Requirements"], ["plan", "Design"], ["build", "Build"], ["build", "Test"], ["ship", "Release"]]],
+        value: ["No value yet", "All value at the end"],
+        meta: [["Also called", "Waterfall, plan-driven"], ["Best when", "Scope is stable and well understood, e.g. a regulatory change or hardware rollout"], ["Watch out", "Late feedback: problems show up in testing, when change is expensive"]] },
+      { tab: "🔁 Adaptive", lanes: [[["plan", "Plan"], ["build", "Build"], ["ship", "Ship"], ["plan", "Plan"], ["build", "Build"], ["ship", "Ship"], ["plan", "Plan"], ["build", "Build"], ["ship", "Ship"]]],
+        value: ["Value early", "Value every iteration"],
+        meta: [["Also called", "Agile, iterative, incremental"], ["Best when", "Requirements are uncertain and fast feedback matters, e.g. a new product feature"], ["Watch out", "Needs an engaged product owner and a team that can ship often"]] },
+      { tab: "🧬 Hybrid", lanes: [[["plan", "Requirements"], ["plan", "Architecture"], ["build", "Sprint"], ["build", "Sprint"], ["build", "Sprint"], ["ship", "Release gate"]]],
+        value: ["Plan up front", "Iterate, then gate"],
+        meta: [["Also called", "Tailored, blended"], ["Best when", "Fixed contracts or compliance gates, with uncertain build work inside"], ["Watch out", "Big upfront plans can quietly turn the sprints back into waterfall"]] },
+    ];
+    let lcActive = 0;
+    function renderLc() {
+      const l = LC[lcActive];
+      document.getElementById("lc-tabs").innerHTML = LC.map((x, i) => `<button class="btn ${i === lcActive ? "active" : ""}" data-lc="${i}">${x.tab}</button>`).join("");
+      document.getElementById("lc-body").innerHTML = `
+        ${l.lanes.map((lane) => `<div class="lane">${lane.map(([c, t]) => `<div class="blk ${c}">${t}</div>`).join("")}</div>`).join("")}
+        <div class="value-row"><span>${l.value[0]}</span><span>${l.value[1]} →</span></div>
+        <div class="lc-meta">${l.meta.map(([h, p]) => `<div><h4>${h}</h4><p>${p}</p></div>`).join("")}</div>`;
+    }
+    document.getElementById("lc-tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-lc]"); if (b) { lcActive = +b.dataset.lc; renderLc(); } });
+    renderLc();
+
+    /* ---------- PMBOK: domains ---------- */
+    const DOMAINS = [
+      ["🤝", "Stakeholders", "Build working relationships and agreement with everyone the project affects.", "Map who has power and interest. Agree on how and how often you update each group."],
+      ["👥", "Team", "Create a high-performing team with shared ownership.", "Clear roles, healthy rituals, and protecting the team from thrash."],
+      ["🧭", "Development approach & life cycle", "Choose how the work is delivered: predictive, adaptive or hybrid.", "Match the approach to the uncertainty, not to habit."],
+      ["🗓️", "Planning", "Organize and coordinate the work, at the right level of detail.", "Plan enough to commit, then refine as you learn."],
+      ["🛠️", "Project work", "Run the processes, manage resources and keep work flowing.", "Remove blockers, manage vendors, keep the team learning."],
+      ["📦", "Delivery", "Deliver the scope and quality that create the intended value.", "Define done. Make sure what ships solves the real problem."],
+      ["📊", "Measurement", "Track performance and act on what you see.", "Pick a few honest metrics. Act on them early, not in the post-mortem."],
+      ["🌫️", "Uncertainty", "Handle risk, ambiguity and complexity.", "Keep a living risk register and buy down the biggest unknowns first."],
+    ];
+    let dActive = 0;
+    function renderDomains() {
+      document.getElementById("domains").innerHTML = DOMAINS.map((d, i) =>
+        `<button class="btn dom ${i === dActive ? "active" : ""}" data-dom="${i}"><span class="e">${d[0]}</span><span class="t">${d[1]}</span></button>`).join("");
+      const d = DOMAINS[dActive];
+      document.getElementById("dom-detail").innerHTML = `
+        <div><div class="panel-h">${d[0]} ${d[1]}</div><div>${d[2]}</div></div>
+        <div class="tpm"><div class="panel-h">🧑‍💼 As a TPM</div>${d[3]}</div>`;
+    }
+    document.getElementById("domains").addEventListener("click", (e) => { const b = e.target.closest("[data-dom]"); if (b) { dActive = +b.dataset.dom; renderDomains(); } });
+    renderDomains();
+
+    /* ---------- PMBOK: principles ---------- */
+    const PRINCIPLES = [
+      ["Be a diligent, respectful, caring steward", "Act with integrity and care for the people, money and environment you're trusted with."],
+      ["Create a collaborative team environment", "Shared goals, clear agreements and psychological safety beat heroics."],
+      ["Effectively engage with stakeholders", "Engage early and often. Surprises erode trust."],
+      ["Focus on value", "Outputs aren't the goal. Check that the work still delivers the intended benefit."],
+      ["Recognize system interactions", "A project is a system. A change in one team ripples into others."],
+      ["Demonstrate leadership behaviors", "Anyone can lead: set direction, motivate, adapt your style."],
+      ["Tailor based on context", "Use just enough process for this project, team and risk."],
+      ["Build quality into processes and deliverables", "Prevent defects instead of inspecting them out at the end."],
+      ["Navigate complexity", "Expect surprises from people, systems and ambiguity. Sense and respond."],
+      ["Optimize risk responses", "Treat threats and opportunities proportionally, owned by a named person."],
+      ["Embrace adaptability and resiliency", "Plan for change. Recover fast when things go wrong."],
+      ["Enable change to achieve the future state", "Help people adopt what you deliver. Shipping isn't adoption."],
+    ];
+    let pActive = 3;
+    function renderPrinciples() {
+      document.getElementById("principles").innerHTML = PRINCIPLES.map((p, i) =>
+        `<button class="btn pr ${i === pActive ? "active" : ""}" data-pr="${i}"><span class="n">${i + 1}</span><span>${p[0]}</span></button>`).join("");
+      const p = PRINCIPLES[pActive];
+      document.getElementById("pr-panel").innerHTML = `<div class="panel-h">Principle ${pActive + 1} · ${p[0]}</div><div>${p[1]}</div>`;
+    }
+    document.getElementById("principles").addEventListener("click", (e) => { const b = e.target.closest("[data-pr]"); if (b) { pActive = +b.dataset.pr; renderPrinciples(); } });
+    renderPrinciples();
+
+    /* ---------- Roles ---------- */
+    const ROLES = [
+      { icon: "📋", name: "Project Manager", tag: "Delivers the project's objectives",
+        owns: ["The plan, schedule and budget", "Risks, issues and status reporting"], decides: ["How the work is planned and tracked", "When to escalate"],
+        measured: ["On time, on budget, agreed scope", "Stakeholder confidence"], say: "\"What does this change do to the date?\"" },
+      { icon: "⚙️", name: "Technical Program Manager", tag: "Delivery with technical depth",
+        owns: ["Cross-team plans and dependencies", "Technical risks and release readiness"], decides: ["Sequencing and execution plan, with engineering leads", "When a technical risk needs leadership"],
+        measured: ["Predictable delivery across teams", "Risks surfaced early, not late"], say: "\"Which team is the long pole, and what's blocking them?\"" },
+      { icon: "🎯", name: "Product Manager", tag: "The why and the what",
+        owns: ["Problem, vision and roadmap", "Product outcomes"], decides: ["What to build next and why", "Trade-offs between features"],
+        measured: ["Adoption, retention, revenue", "Customer outcomes"], say: "\"What problem are we solving, and for whom?\"" },
+      { icon: "🗂️", name: "Product Owner", tag: "Scrum accountability for value",
+        owns: ["The Product Backlog and the Product Goal", "Maximizing the value of the team's work"], decides: ["Backlog ordering", "What goes into the Product Backlog"],
+        measured: ["Value delivered per sprint", "A clear, ordered backlog"], say: "\"That's not at the top of the backlog yet.\"" },
+      { icon: "🧘", name: "Scrum Master", tag: "Scrum Team effectiveness",
+        owns: ["Coaching the team and organization in Scrum", "Removing impediments"], decides: ["How events are facilitated", "Which impediments to tackle first"],
+        measured: ["Team effectiveness and improvement", "Fewer recurring impediments"], say: "\"What's slowing you down this sprint?\"" },
+      { icon: "🧑‍💻", name: "Engineering Manager", tag: "People and engineering health",
+        owns: ["Hiring, growth and performance", "Team health and practices"], decides: ["Staffing and team structure", "Engineering standards, with tech leads"],
+        measured: ["Retention and growth", "Sustainable, quality delivery"], say: "\"Who has capacity, and is anyone burning out?\"" },
+    ];
+    const rolesEl = document.getElementById("roles-list"), rolePanel = document.getElementById("role-panel");
+    function showRole(i) {
+      const r = ROLES[i];
+      [...rolesEl.children].forEach((b, j) => b.classList.toggle("active", i === j));
+      rolePanel.innerHTML = `
+        <div style="font-size:40px">${r.icon}</div>
+        <h3>${r.name}</h3><div style="color:var(--muted)">${r.tag}</div>
+        <div class="role-cols">
+          <div><h4>Owns</h4>${list(r.owns)}</div>
+          <div><h4>Decides</h4>${list(r.decides)}</div>
+          <div><h4>Measured by</h4>${list(r.measured)}</div>
+          <div><h4>💬 You'll hear</h4><div class="say-q" style="margin-top:0">${r.say}</div></div>
+        </div>`;
+    }
+    rolesEl.innerHTML = ROLES.map((r, i) => `<button class="btn role-btn" data-i="${i}"><span>${r.icon}</span>${r.name}</button>`).join("");
+    rolesEl.addEventListener("click", (e) => { const b = e.target.closest(".role-btn"); if (b) showRole(+b.dataset.i); });
+    showRole(1);
+
+    const DECIDE = [
+      ["What to build and why", ["Product Manager"], ["Customers", "TPM", "Engineering"]],
+      ["Order of the backlog", ["Product Owner"], ["Developers", "Stakeholders"]],
+      ["How to build it (technical approach)", ["Developers", "Tech lead"], ["Architects", "TPM"]],
+      ["How much work fits in a sprint", ["Developers"], ["Product Owner", "Scrum Master"]],
+      ["Delivery plan and cross-team sequencing", ["TPM / PM"], ["Engineering leads", "Product Manager"]],
+      ["Extra budget or a new deadline", ["Sponsor"], ["TPM / PM", "Product Manager"]],
+      ["Who is on the team", ["Engineering Manager"], ["TPM / PM"]],
+    ];
+    const pills = (a, c) => a.map((x) => `<span class="pill ${c}">${x}</span>`).join("");
+    document.getElementById("decide").innerHTML = DECIDE.map(([q, d, c]) => `
+      <div class="card drow"><div class="q">${q}</div>
+        <div><span class="lbl">Decides</span>${pills(d, "d")}</div>
+        <div><span class="lbl">Gives input</span>${pills(c, "c")}</div></div>`).join("");
+
+    /* ---------- Try: quiz ---------- */
+    const QUIZ = [
+      ["Dark mode or offline mode next quarter?", ["Product Manager", "TPM", "Engineering Manager", "Scrum Master"], 0,
+        "Choosing what to build and why is product's call. You bring cost and risk input."],
+      ["Swap backlog items 3 and 4 before sprint planning.", ["Scrum Master", "Product Owner", "TPM", "Developers"], 1,
+        "The Product Owner is accountable for ordering the Product Backlog (Scrum Guide 2020)."],
+      ["Kafka or RabbitMQ for the new event bus?", ["TPM", "Product Manager", "Developers / tech lead", "Sponsor"], 2,
+        "Engineering owns the how. Your job: make sure the decision is made, recorded and its risks are known."],
+      ["The payments API slips two weeks and blocks three teams.", ["Engineering Manager", "Product Owner", "Scrum Master", "TPM"], 3,
+        "Cross-team dependency and replanning is core TPM work: re-sequence, communicate, escalate if needed."],
+      ["The team keeps getting ad-hoc requests mid-sprint.", ["Scrum Master", "Sponsor", "Product Manager", "Developers"], 0,
+        "Removing impediments and protecting focus is the Scrum Master's accountability, with the Product Owner."],
+      ["A senior engineer wants to move to another team.", ["TPM", "Engineering Manager", "Product Owner", "Scrum Master"], 1,
+        "People, staffing and careers sit with the Engineering Manager."],
+      ["The project needs extra budget to finish (illustrative: +$50k).", ["TPM", "Product Owner", "Sponsor", "Developers"], 2,
+        "The sponsor funds the project and approves changes to its budget. You bring the options and their impact."],
+      ["How many backlog items go into this sprint?", ["Developers", "Product Owner", "TPM", "Scrum Master"], 0,
+        "In Sprint Planning the Developers select what they can deliver. The Product Owner proposes what matters most."],
+    ];
+    let qi = 0, qres = [], answered = null;
+    const quiz = document.getElementById("quiz");
+    function renderQuiz() {
+      const dots = QUIZ.map((_, i) => `<i class="${qres[i] === true ? "good" : qres[i] === false ? "bad" : ""}"></i>`).join("");
+      if (qi >= QUIZ.length) {
+        const score = qres.filter(Boolean).length;
+        quiz.innerHTML = `<div class="dots">${dots}</div>
+          <div class="quiz-q">${score >= 7 ? "🏆" : score >= 5 ? "👍" : "🌱"} ${score} / ${QUIZ.length}</div>
+          <p style="color:var(--muted)">Titles differ by company. When in doubt, ask "who is accountable?"</p>
+          <button class="btn primary" data-quiz-retry>Try again</button>`;
+        return;
+      }
+      const [q, opts, right, why] = QUIZ[qi];
+      quiz.innerHTML = `<div class="dots">${dots}</div>
+        <div class="quiz-q">${q}</div>
+        <div class="quiz-opts">${opts.map((o, i) => {
+          const cls = answered === null ? "" : i === right ? "ok" : i === answered ? "no" : "";
+          return `<button class="btn ${cls}" data-opt="${i}" ${answered !== null ? "disabled" : ""}>${o}</button>`;
+        }).join("")}</div>
+        <div class="quiz-fb ${answered === null ? "" : answered === right ? "good" : "bad"}">${answered === null ? "Who is accountable for this decision?" : (answered === right ? "✓ Right. " : "✗ Not quite. ") + why}</div>
+        ${answered !== null ? `<button class="btn primary quiz-next" data-quiz-next>${qi === QUIZ.length - 1 ? "See score" : "Next →"}</button>` : ""}`;
+    }
+    quiz.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.hasAttribute("data-quiz-retry")) { qi = 0; qres = []; answered = null; }
+      else if (b.hasAttribute("data-quiz-next")) { qi++; answered = null; }
+      else if (b.dataset.opt !== undefined && answered === null) { answered = +b.dataset.opt; qres[qi] = answered === QUIZ[qi][2]; }
+      renderQuiz();
+    });
+    renderQuiz();
+
+    /* ---------- TPM Lens ---------- */
+    const LENS = [
+      ["\"That's an operational task.\"", "It's ongoing, repeatable work, not part of the project's scope.", "Who owns it after launch, and is that handover in the plan?"],
+      ["\"We need a program, not a project.\"", "Several related projects need shared coordination and one benefit goal.", "What's the shared outcome, and who owns cross-project dependencies?"],
+      ["\"What's the constraint?\"", "Which of scope, time, cost or quality is fixed.", "Is the date truly fixed, and what happens if we miss it?"],
+      ["\"The PO owns the backlog.\"", "Ordering the Product Backlog is the Product Owner's accountability.", "How do I get cross-team work prioritized in it?"],
+      ["\"Is this in scope?\"", "Does it belong to what was agreed in the charter or backlog?", "If not, is it a change request, and who approves it?"],
+      ["\"Who's the sponsor?\"", "The person who funds the project and is accountable for its business case.", "How often do they want updates, and when do I escalate to them?"],
+    ];
+    document.getElementById("lens-cards").innerHTML = LENS.map(([say, means, ask]) => `
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face"><div class="say">${say}</div><div class="hint">↻ tap to flip</div></div>
+        <div class="flip-face flip-back">
+          <div class="lbl">It means</div><p>${means}</p>
+          <div class="lbl">💬 You ask</div><p>${ask}</p>
+        </div>
+      </div></div>`).join("");
+
+    initChapter(0);
+  </script>
+  <script src="../assets/app.js"></script>
+</body>
+</html>
